@@ -229,6 +229,89 @@ a {
     height: 48px;
     object-fit: contain;
 }
+/* dashboard css */
+.dashboard-shell {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    background-color: #f7f7f7;
+}
+
+.dashboard-sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem 1.25rem;
+    background-color: var(--eventore-black);
+    color: var(--eventore-white);
+}
+
+.dashboard-logo {
+    margin-bottom: 0.25rem;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.dashboard-role {
+    color: var(--eventore-lime);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1rem;
+    text-transform: uppercase;
+}
+
+.dashboard-navigation {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 2.5rem;
+}
+
+.dashboard-link {
+    padding: 0.8rem 1rem;
+    color: #c8c8c8;
+    border-radius: 0.75rem;
+    font-weight: 600;
+}
+
+.dashboard-link:hover {
+    color: var(--eventore-white);
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-link.active {
+    color: var(--eventore-black);
+    background-color: var(--eventore-lime);
+}
+
+.dashboard-content {
+    min-width: 0;
+    padding: 2rem;
+}
+
+@media (max-width: 767.98px) {
+    .dashboard-shell {
+        display: block;
+    }
+
+    .dashboard-sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+    }
+
+    .dashboard-navigation {
+        margin: 1.5rem 0;
+    }
+
+    .dashboard-content {
+        padding: 1.25rem;
+    }
+}
 
 @media (max-width: 575.98px) {
     .footer-logo {

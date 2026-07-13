@@ -14,7 +14,9 @@ function PublicLayout() {
 
             <Footer />
         </div>
+        
     );
+    
 }
 
 export default PublicLayout;
