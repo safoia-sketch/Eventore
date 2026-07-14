@@ -1,10 +1,31 @@
-import { useState } from "react";
-import { Link } from "react-router";
+import { useEffect, useState } from "react";
+import {
+    Link,
+    useLocation,
+    useNavigate
+} from "react-router-dom";
 
 import ErrorAlert from "../../components/common/ErrorAlert";
 import FormInput from "../../components/forms/FormInput";
+import { useAuth } from "../../context/AuthContext";
+
+const dashboardPaths = {
+    attendee: "/attendee",
+    organiser: "/organiser",
+    staff: "/staff",
+    administrator: "/admin"
+};
 
 function LoginPage() {
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const {
+        user,
+        loading,
+        login
+    } = useAuth();
+
     const [formData, setFormData] = useState({
         email: "",
         password: ""
@@ -12,6 +33,20 @@ function LoginPage() {
 
     const [errors, setErrors] = useState({});
     const [generalError, setGeneralError] = useState("");
+    const [isSubmitting, setIsSubmitting] =
+        useState(false);
+
+    // Prevent logged-in users from returning to login.
+    useEffect(() => {
+        if (!loading && user) {
+            const dashboardPath =
+                dashboardPaths[user.role] || "/";
+
+            navigate(dashboardPath, {
+                replace: true
+            });
+        }
+    }, [user, loading, navigate]);
 
     function handleChange(event) {
         const { name, value } = event.target;
@@ -44,7 +79,8 @@ function LoginPage() {
         }
 
         if (!formData.password) {
-            newErrors.password = "Password is required.";
+            newErrors.password =
+                "Password is required.";
         } else if (formData.password.length < 8) {
             newErrors.password =
                 "Password must contain at least 8 characters.";
@@ -53,7 +89,7 @@ function LoginPage() {
         return newErrors;
     }
 
-    function handleSubmit(event) {
+    async function handleSubmit(event) {
         event.preventDefault();
 
         const validationErrors = validateForm();
@@ -66,13 +102,51 @@ function LoginPage() {
             return;
         }
 
-        console.log("Login form ready:", {
-            email: formData.email
-        });
+        try {
+            setIsSubmitting(true);
+            setGeneralError("");
+            setErrors({});
 
-        setGeneralError(
-            "The form is ready. Login functionality will be connected on Day 2."
-        );
+            const data = await login({
+                email: formData.email.trim(),
+                password: formData.password
+            });
+
+            // If ProtectedRoute sent the user to login,
+            // return them to the page they originally requested.
+            const requestedPath =
+                location.state?.from?.pathname;
+
+            const dashboardPath =
+                dashboardPaths[data.user.role] || "/";
+
+            navigate(
+                requestedPath || dashboardPath,
+                { replace: true }
+            );
+        } catch (error) {
+            const fieldErrors = {};
+
+            error.errors?.forEach((validationError) => {
+                const fieldName =
+                    validationError.path ||
+                    validationError.param;
+
+                if (fieldName) {
+                    fieldErrors[fieldName] =
+                        validationError.msg;
+                }
+            });
+
+            setErrors(fieldErrors);
+
+            setGeneralError(
+                error.message ||
+                "Login failed. Please try again."
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     return (
@@ -95,6 +169,7 @@ function LoginPage() {
 
                         <div className="auth-highlight">
                             <strong>One account.</strong>
+
                             <span>
                                 Every booking, ticket and event
                                 in one place.
@@ -107,13 +182,16 @@ function LoginPage() {
                             <h2>Sign in</h2>
 
                             <p>
-                                Enter your Eventore account details.
+                                Enter your Eventore account
+                                details.
                             </p>
                         </div>
 
                         <ErrorAlert
                             message={generalError}
-                            onClose={() => setGeneralError("")}
+                            onClose={() =>
+                                setGeneralError("")
+                            }
                         />
 
                         <form
@@ -130,6 +208,7 @@ function LoginPage() {
                                 error={errors.email}
                                 required
                                 autoComplete="email"
+                                disabled={isSubmitting}
                             />
 
                             <FormInput
@@ -142,6 +221,7 @@ function LoginPage() {
                                 error={errors.password}
                                 required
                                 autoComplete="current-password"
+                                disabled={isSubmitting}
                             />
 
                             <div className="d-flex justify-content-between align-items-center gap-3 mb-4">
@@ -149,6 +229,7 @@ function LoginPage() {
                                     <input
                                         type="checkbox"
                                         className="form-check-input"
+                                        disabled
                                     />
 
                                     <span className="form-check-label">
@@ -168,8 +249,11 @@ function LoginPage() {
                             <button
                                 type="submit"
                                 className="btn btn-eventore w-100"
+                                disabled={isSubmitting}
                             >
-                                Sign in
+                                {isSubmitting
+                                    ? "Signing in..."
+                                    : "Sign in"}
                             </button>
                         </form>
 

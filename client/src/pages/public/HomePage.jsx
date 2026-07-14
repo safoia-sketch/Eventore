@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 
 import EventCard from "../../components/events/EventCard";
 import sampleEvents from "../../data/sampleEvents";

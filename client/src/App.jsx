@@ -1,12 +1,16 @@
-import { Route, Routes } from "react-router";
+import { Route, Routes } from "react-router-dom";
 
 // Layouts
 import PublicLayout from "./layouts/PublicLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
 
+// Route protection
+import ProtectedRoute from "./components/common/ProtectedRoute";
+
 // Public pages
 import HomePage from "./pages/public/HomePage";
 import EventsPage from "./pages/public/EventsPage";
+import EventDetailsPage from "./pages/public/EventDetailsPage";
 import AboutPage from "./pages/public/AboutPage";
 import NotFoundPage from "./pages/public/NotFoundPage";
 
@@ -18,6 +22,8 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import AttendeeDashboard from "./pages/attendee/AttendeeDashboard";
 import MyBookingsPage from "./pages/attendee/MyBookingsPage";
 import MyTicketsPage from "./pages/attendee/MyTicketsPage";
+import CheckoutPage from "./pages/attendee/CheckoutPage";
+import TicketPage from "./pages/attendee/TicketPage";
 
 // Organiser pages
 import OrganiserDashboard from "./pages/organiser/OrganiserDashboard";
@@ -33,13 +39,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminEventsPage from "./pages/admin/AdminEventsPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 
-//Event details page 
-import EventDetailsPage from "./pages/public/EventDetailsPage";
+// import { Route, Routes } from "react-router-dom";
 
-//
-import CheckoutPage from "./pages/attendee/CheckoutPage";
-//
-import TicketPage from "./pages/attendee/TicketPage";
 
 function App() {
     return (
@@ -47,33 +48,70 @@ function App() {
             {/* Public pages */}
             <Route element={<PublicLayout />}>
                 <Route path="/" element={<HomePage />} />
-                <Route path="/events" element={<EventsPage />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="*" element={<NotFoundPage />} />
+
+                <Route
+                    path="/events"
+                    element={<EventsPage />}
+                />
+
+                <Route
+                    path="/events/:id"
+                    element={<EventDetailsPage />}
+                />
+
+                <Route
+                    path="/about"
+                    element={<AboutPage />}
+                />
+
+                <Route
+                    path="/login"
+                    element={<LoginPage />}
+                />
+
+                <Route
+                    path="/register"
+                    element={<RegisterPage />}
+                />
+
+                <Route
+                    path="*"
+                    element={<NotFoundPage />}
+                />
             </Route>
-            <Route
-    path="/tickets/:id"
-    element={<TicketPage />}
-/>
-            <Route path="/" element={<HomePage />} />
-            <Route
-    path="/checkout/:eventId"
-    element={<CheckoutPage />}
-/>
-<Route path="/events" element={<EventsPage />} />
 
-<Route
-    path="/events/:id"
-    element={<EventDetailsPage />}
-/>
-
-<Route path="/about" element={<AboutPage />} />
-
-            {/* Attendee pages */}
+            {/* Attendee-only booking pages */}
             <Route
-                element={<DashboardLayout role="attendee" />}
+                path="/checkout/:eventId"
+                element={
+                    <ProtectedRoute
+                        allowedRoles={["attendee"]}
+                    >
+                        <CheckoutPage />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/tickets/:id"
+                element={
+                    <ProtectedRoute
+                        allowedRoles={["attendee"]}
+                    >
+                        <TicketPage />
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* Attendee dashboard pages */}
+            <Route
+                element={
+                    <ProtectedRoute
+                        allowedRoles={["attendee"]}
+                    >
+                        <DashboardLayout role="attendee" />
+                    </ProtectedRoute>
+                }
             >
                 <Route
                     path="/attendee"
@@ -91,9 +129,15 @@ function App() {
                 />
             </Route>
 
-            {/* Organiser pages */}
+            {/* Organiser dashboard */}
             <Route
-                element={<DashboardLayout role="organiser" />}
+                element={
+                    <ProtectedRoute
+                        allowedRoles={["organiser"]}
+                    >
+                        <DashboardLayout role="organiser" />
+                    </ProtectedRoute>
+                }
             >
                 <Route
                     path="/organiser"
@@ -102,18 +146,38 @@ function App() {
 
                 <Route
                     path="/organiser/events"
-                    element={<MyEventsPage />}
+                    element={
+                        <ProtectedRoute
+                            allowedRoles={["organiser"]}
+                            requireApproval={true}
+                        >
+                            <MyEventsPage />
+                        </ProtectedRoute>
+                    }
                 />
 
                 <Route
                     path="/organiser/events/new"
-                    element={<CreateEventPage />}
+                    element={
+                        <ProtectedRoute
+                            allowedRoles={["organiser"]}
+                            requireApproval={true}
+                        >
+                            <CreateEventPage />
+                        </ProtectedRoute>
+                    }
                 />
             </Route>
 
-            {/* Staff pages */}
+            {/* Staff dashboard pages */}
             <Route
-                element={<DashboardLayout role="staff" />}
+                element={
+                    <ProtectedRoute
+                        allowedRoles={["staff"]}
+                    >
+                        <DashboardLayout role="staff" />
+                    </ProtectedRoute>
+                }
             >
                 <Route
                     path="/staff"
@@ -126,10 +190,14 @@ function App() {
                 />
             </Route>
 
-            {/* Administrator pages */}
+            {/* Administrator dashboard pages */}
             <Route
                 element={
-                    <DashboardLayout role="administrator" />
+                    <ProtectedRoute
+                        allowedRoles={["administrator"]}
+                    >
+                        <DashboardLayout role="administrator" />
+                    </ProtectedRoute>
                 }
             >
                 <Route

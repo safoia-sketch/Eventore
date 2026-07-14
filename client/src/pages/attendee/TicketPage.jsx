@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router";
+import { Link, useParams } from "react-router-dom";
 
 import StatusBadge from "../../components/common/StatusBadge";
 import sampleEvents from "../../data/sampleEvents";

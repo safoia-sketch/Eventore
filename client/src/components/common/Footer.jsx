@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 
 import eventoreLogo from "../../assets/images/Eventore_logo.png";
 

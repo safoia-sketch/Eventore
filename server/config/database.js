@@ -1,6 +1,23 @@
+import "dotenv/config";
 import pg from "pg";
 
 const { Pool } = pg;
+
+const requiredEnvironmentVariables = [
+    "DB_HOST",
+    "DB_PORT",
+    "DB_NAME",
+    "DB_USER",
+    "DB_PASSWORD"
+];
+
+for (const variableName of requiredEnvironmentVariables) {
+    if (!process.env[variableName]) {
+        throw new Error(
+            `Missing required environment variable: ${variableName}`
+        );
+    }
+}
 
 const pool = new Pool({
     host: process.env.DB_HOST,
@@ -11,7 +28,7 @@ const pool = new Pool({
 });
 
 pool.on("error", (error) => {
-    console.error("Unexpected PostgreSQL pool error:", error);
+    console.error("Unexpected PostgreSQL error:", error);
 });
 
 export default pool;

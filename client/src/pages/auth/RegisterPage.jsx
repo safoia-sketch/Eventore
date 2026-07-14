@@ -1,8 +1,12 @@
-import { useState } from "react";
-import { Link } from "react-router";
+import { useEffect, useState } from "react";
+import {
+    Link,
+    useNavigate
+} from "react-router-dom";
 
 import ErrorAlert from "../../components/common/ErrorAlert";
 import FormInput from "../../components/forms/FormInput";
+import { useAuth } from "../../context/AuthContext";
 
 const initialFormData = {
     fullName: "",
@@ -13,7 +17,22 @@ const initialFormData = {
     acceptTerms: false
 };
 
+const dashboardPaths = {
+    attendee: "/attendee",
+    organiser: "/organiser",
+    staff: "/staff",
+    administrator: "/admin"
+};
+
 function RegisterPage() {
+    const navigate = useNavigate();
+
+    const {
+        user,
+        loading,
+        register
+    } = useAuth();
+
     const [formData, setFormData] =
         useState(initialFormData);
 
@@ -22,16 +41,32 @@ function RegisterPage() {
         useState("");
     const [successMessage, setSuccessMessage] =
         useState("");
+    const [isSubmitting, setIsSubmitting] =
+        useState(false);
+
+    useEffect(() => {
+        if (!loading && user) {
+            navigate(
+                dashboardPaths[user.role] || "/",
+                { replace: true }
+            );
+        }
+    }, [user, loading, navigate]);
 
     function handleChange(event) {
-        const { name, value, type, checked } =
-            event.target;
+        const {
+            name,
+            value,
+            type,
+            checked
+        } = event.target;
 
         setFormData((currentData) => ({
             ...currentData,
-            [name]: type === "checkbox"
-                ? checked
-                : value
+            [name]:
+                type === "checkbox"
+                    ? checked
+                    : value
         }));
 
         setErrors((currentErrors) => ({
@@ -49,13 +84,16 @@ function RegisterPage() {
         if (!formData.fullName.trim()) {
             newErrors.fullName =
                 "Your full name is required.";
-        } else if (formData.fullName.trim().length < 3) {
+        } else if (
+            formData.fullName.trim().length < 3
+        ) {
             newErrors.fullName =
                 "Enter at least three characters.";
         }
 
         if (!formData.email.trim()) {
-            newErrors.email = "Email is required.";
+            newErrors.email =
+                "Email is required.";
         } else if (
             !formData.email
                 .toLowerCase()
@@ -68,9 +106,26 @@ function RegisterPage() {
         if (!formData.password) {
             newErrors.password =
                 "Password is required.";
-        } else if (formData.password.length < 8) {
+        } else if (
+            formData.password.length < 8
+        ) {
             newErrors.password =
                 "Password must contain at least 8 characters.";
+        } else if (
+            !/[a-z]/.test(formData.password)
+        ) {
+            newErrors.password =
+                "Password must contain a lowercase letter.";
+        } else if (
+            !/[A-Z]/.test(formData.password)
+        ) {
+            newErrors.password =
+                "Password must contain an uppercase letter.";
+        } else if (
+            !/[0-9]/.test(formData.password)
+        ) {
+            newErrors.password =
+                "Password must contain a number.";
         }
 
         if (!formData.confirmPassword) {
@@ -92,12 +147,15 @@ function RegisterPage() {
         return newErrors;
     }
 
-    function handleSubmit(event) {
+    async function handleSubmit(event) {
         event.preventDefault();
 
-        const validationErrors = validateForm();
+        const validationErrors =
+            validateForm();
 
-        if (Object.keys(validationErrors).length > 0) {
+        if (
+            Object.keys(validationErrors).length > 0
+        ) {
             setErrors(validationErrors);
             setGeneralError(
                 "Please correct the highlighted fields."
@@ -105,15 +163,64 @@ function RegisterPage() {
             return;
         }
 
-        console.log("Registration form ready:", {
-            fullName: formData.fullName,
-            email: formData.email,
-            accountType: formData.accountType
-        });
+        try {
+            setIsSubmitting(true);
+            setErrors({});
+            setGeneralError("");
+            setSuccessMessage("");
 
-        setSuccessMessage(
-            "The registration form is ready. We will connect it to the API on Day 2."
-        );
+            const data = await register({
+                fullName:
+                    formData.fullName.trim(),
+                email:
+                    formData.email.trim(),
+                password:
+                    formData.password,
+                role:
+                    formData.accountType
+            });
+
+            setSuccessMessage(data.message);
+            setFormData(initialFormData);
+
+            setTimeout(() => {
+                navigate("/login", {
+                    replace: true,
+                    state: {
+                        registrationMessage:
+                            data.message
+                    }
+                });
+            }, 1500);
+        } catch (error) {
+            const fieldErrors = {};
+
+            error.errors?.forEach(
+                (validationError) => {
+                    let fieldName =
+                        validationError.path ||
+                        validationError.param;
+
+                    if (fieldName === "role") {
+                        fieldName = "accountType";
+                    }
+
+                    if (fieldName) {
+                        fieldErrors[fieldName] =
+                            validationError.msg;
+                    }
+                }
+            );
+
+            setErrors(fieldErrors);
+
+            setGeneralError(
+                error.message ||
+                "Registration failed. Please try again."
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     return (
@@ -130,9 +237,9 @@ function RegisterPage() {
                         </h1>
 
                         <p>
-                            Create an account to discover events,
-                            manage tickets or begin organising your
-                            own experiences.
+                            Create an account to discover
+                            events, manage tickets or begin
+                            organising your own experiences.
                         </p>
 
                         <div className="auth-highlight">
@@ -141,9 +248,9 @@ function RegisterPage() {
                             </strong>
 
                             <span>
-                                Choose how you want to begin. Your
-                                permissions will be protected by your
-                                account role.
+                                Choose how you want to begin.
+                                Your permissions will be
+                                protected by your account role.
                             </span>
                         </div>
                     </section>
@@ -187,6 +294,7 @@ function RegisterPage() {
                                 error={errors.fullName}
                                 required
                                 autoComplete="name"
+                                disabled={isSubmitting}
                             />
 
                             <FormInput
@@ -199,6 +307,7 @@ function RegisterPage() {
                                 error={errors.email}
                                 required
                                 autoComplete="email"
+                                disabled={isSubmitting}
                             />
 
                             <div className="mb-3">
@@ -212,9 +321,12 @@ function RegisterPage() {
                                 <select
                                     id="account-type"
                                     name="accountType"
-                                    value={formData.accountType}
+                                    value={
+                                        formData.accountType
+                                    }
                                     onChange={handleChange}
                                     className="form-select eventore-input"
+                                    disabled={isSubmitting}
                                 >
                                     <option value="attendee">
                                         Attendee
@@ -228,9 +340,10 @@ function RegisterPage() {
                                 {formData.accountType ===
                                     "organiser" && (
                                     <p className="form-help-text">
-                                        Organiser accounts require
-                                        administrator approval before
-                                        creating events.
+                                        Organiser accounts
+                                        require administrator
+                                        approval before creating
+                                        events.
                                     </p>
                                 )}
                             </div>
@@ -241,12 +354,21 @@ function RegisterPage() {
                                         label="Password"
                                         name="password"
                                         type="password"
-                                        value={formData.password}
-                                        onChange={handleChange}
+                                        value={
+                                            formData.password
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
                                         placeholder="At least 8 characters"
-                                        error={errors.password}
+                                        error={
+                                            errors.password
+                                        }
                                         required
                                         autoComplete="new-password"
+                                        disabled={
+                                            isSubmitting
+                                        }
                                     />
                                 </div>
 
@@ -258,13 +380,18 @@ function RegisterPage() {
                                         value={
                                             formData.confirmPassword
                                         }
-                                        onChange={handleChange}
+                                        onChange={
+                                            handleChange
+                                        }
                                         placeholder="Repeat password"
                                         error={
                                             errors.confirmPassword
                                         }
                                         required
                                         autoComplete="new-password"
+                                        disabled={
+                                            isSubmitting
+                                        }
                                     />
                                 </div>
                             </div>
@@ -277,7 +404,12 @@ function RegisterPage() {
                                         checked={
                                             formData.acceptTerms
                                         }
-                                        onChange={handleChange}
+                                        onChange={
+                                            handleChange
+                                        }
+                                        disabled={
+                                            isSubmitting
+                                        }
                                         className={`form-check-input ${
                                             errors.acceptTerms
                                                 ? "is-invalid"
@@ -286,14 +418,16 @@ function RegisterPage() {
                                     />
 
                                     <span className="form-check-label">
-                                        I accept the Eventore terms
-                                        and privacy policy.
+                                        I accept the Eventore
+                                        terms and privacy policy.
                                     </span>
                                 </label>
 
                                 {errors.acceptTerms && (
                                     <div className="registration-error">
-                                        {errors.acceptTerms}
+                                        {
+                                            errors.acceptTerms
+                                        }
                                     </div>
                                 )}
                             </div>
@@ -301,8 +435,11 @@ function RegisterPage() {
                             <button
                                 type="submit"
                                 className="btn btn-eventore w-100"
+                                disabled={isSubmitting}
                             >
-                                Create account
+                                {isSubmitting
+                                    ? "Creating account..."
+                                    : "Create account"}
                             </button>
                         </form>
 

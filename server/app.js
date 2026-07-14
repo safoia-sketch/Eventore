@@ -1,39 +1,28 @@
-import express from "express";
-import cors from "cors";
+import "dotenv/config";
 
-const app = express();
+import app from "./app.js";
+import pool from "./config/database.js";
 
-app.use(
-    cors({
-        origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
-        credentials: true
-    })
-);
+const PORT = process.env.PORT || 5000;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+async function startServer() {
+    try {
+        const result = await pool.query("SELECT NOW() AS current_time");
 
-app.get("/api/health", (req, res) => {
-    res.status(200).json({
-        success: true,
-        message: "Eventore API is running"
-    });
-});
+        console.log(
+            "PostgreSQL connected:",
+            result.rows[0].current_time
+        );
 
-app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: "API route not found"
-    });
-});
+        app.listen(PORT, () => {
+            console.log(
+                `Eventore server running on http://localhost:${PORT}`
+            );
+        });
+    } catch (error) {
+        console.error("Unable to connect to PostgreSQL:", error.message);
+        process.exit(1);
+    }
+}
 
-app.use((error, req, res, next) => {
-    console.error(error);
-
-    res.status(500).json({
-        success: false,
-        message: "An unexpected server error occurred"
-    });
-});
-
-export default app;
+startServer();
