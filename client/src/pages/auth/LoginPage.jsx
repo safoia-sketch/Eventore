@@ -1,8 +1,188 @@
+import { useState } from "react";
+import { Link } from "react-router";
+
+import ErrorAlert from "../../components/common/ErrorAlert";
+import FormInput from "../../components/forms/FormInput";
+
 function LoginPage() {
+    const [formData, setFormData] = useState({
+        email: "",
+        password: ""
+    });
+
+    const [errors, setErrors] = useState({});
+    const [generalError, setGeneralError] = useState("");
+
+    function handleChange(event) {
+        const { name, value } = event.target;
+
+        setFormData((currentData) => ({
+            ...currentData,
+            [name]: value
+        }));
+
+        setErrors((currentErrors) => ({
+            ...currentErrors,
+            [name]: ""
+        }));
+
+        setGeneralError("");
+    }
+
+    function validateForm() {
+        const newErrors = {};
+
+        if (!formData.email.trim()) {
+            newErrors.email = "Email is required.";
+        } else if (
+            !formData.email
+                .toLowerCase()
+                .match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
+        ) {
+            newErrors.email =
+                "Enter a valid email address.";
+        }
+
+        if (!formData.password) {
+            newErrors.password = "Password is required.";
+        } else if (formData.password.length < 8) {
+            newErrors.password =
+                "Password must contain at least 8 characters.";
+        }
+
+        return newErrors;
+    }
+
+    function handleSubmit(event) {
+        event.preventDefault();
+
+        const validationErrors = validateForm();
+
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            setGeneralError(
+                "Please correct the highlighted fields."
+            );
+            return;
+        }
+
+        console.log("Login form ready:", {
+            email: formData.email
+        });
+
+        setGeneralError(
+            "The form is ready. Login functionality will be connected on Day 2."
+        );
+    }
+
     return (
-        <main className="container py-5">
-            <h1>Login</h1>
-            <p>Sign in to your Eventore account.</p>
+        <main className="auth-page">
+            <div className="container">
+                <div className="auth-container">
+                    <section className="auth-introduction">
+                        <p className="eventore-label">
+                            WELCOME BACK
+                        </p>
+
+                        <h1>
+                            Your next experience is waiting.
+                        </h1>
+
+                        <p>
+                            Sign in to manage your bookings,
+                            tickets and events.
+                        </p>
+
+                        <div className="auth-highlight">
+                            <strong>One account.</strong>
+                            <span>
+                                Every booking, ticket and event
+                                in one place.
+                            </span>
+                        </div>
+                    </section>
+
+                    <section className="auth-form-card">
+                        <div className="mb-4">
+                            <h2>Sign in</h2>
+
+                            <p>
+                                Enter your Eventore account details.
+                            </p>
+                        </div>
+
+                        <ErrorAlert
+                            message={generalError}
+                            onClose={() => setGeneralError("")}
+                        />
+
+                        <form
+                            onSubmit={handleSubmit}
+                            noValidate
+                        >
+                            <FormInput
+                                label="Email address"
+                                name="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                placeholder="you@example.com"
+                                error={errors.email}
+                                required
+                                autoComplete="email"
+                            />
+
+                            <FormInput
+                                label="Password"
+                                name="password"
+                                type="password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                placeholder="Enter your password"
+                                error={errors.password}
+                                required
+                                autoComplete="current-password"
+                            />
+
+                            <div className="d-flex justify-content-between align-items-center gap-3 mb-4">
+                                <label className="form-check">
+                                    <input
+                                        type="checkbox"
+                                        className="form-check-input"
+                                    />
+
+                                    <span className="form-check-label">
+                                        Remember me
+                                    </span>
+                                </label>
+
+                                <button
+                                    type="button"
+                                    className="auth-text-button"
+                                    disabled
+                                >
+                                    Forgot password?
+                                </button>
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="btn btn-eventore w-100"
+                            >
+                                Sign in
+                            </button>
+                        </form>
+
+                        <p className="auth-switch-text">
+                            Don&apos;t have an account?{" "}
+
+                            <Link to="/register">
+                                Create one
+                            </Link>
+                        </p>
+                    </section>
+                </div>
+            </div>
         </main>
     );
 }

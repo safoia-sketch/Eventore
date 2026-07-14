@@ -33,6 +33,14 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminEventsPage from "./pages/admin/AdminEventsPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 
+//Event details page 
+import EventDetailsPage from "./pages/public/EventDetailsPage";
+
+//
+import CheckoutPage from "./pages/attendee/CheckoutPage";
+//
+import TicketPage from "./pages/attendee/TicketPage";
+
 function App() {
     return (
         <Routes>
@@ -45,6 +53,23 @@ function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="*" element={<NotFoundPage />} />
             </Route>
+            <Route
+    path="/tickets/:id"
+    element={<TicketPage />}
+/>
+            <Route path="/" element={<HomePage />} />
+            <Route
+    path="/checkout/:eventId"
+    element={<CheckoutPage />}
+/>
+<Route path="/events" element={<EventsPage />} />
+
+<Route
+    path="/events/:id"
+    element={<EventDetailsPage />}
+/>
+
+<Route path="/about" element={<AboutPage />} />
 
             {/* Attendee pages */}
             <Route
