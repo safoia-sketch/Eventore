@@ -1,63 +1,119 @@
-import { useMemo, useState } from "react";
+import {
+    useEffect,
+    useState
+} from "react";
 
 import EmptyState from "../../components/common/EmptyState";
 import PageHeader from "../../components/common/PageHeader";
 import EventCard from "../../components/events/EventCard";
 import FilterPanel from "../../components/events/FilterPanel";
 import SearchBar from "../../components/events/SearchBar";
-import sampleEvents from "../../data/sampleEvents";
+import { eventApi } from "../../services/api";
+
 
 function EventsPage() {
+    const [events, setEvents] = useState([]);
+    const [categories, setCategories] = useState([]);
+
     const [searchTerm, setSearchTerm] = useState("");
-    const [category, setCategory] = useState("all");
-    const [location, setLocation] = useState("all");
-    const [priceType, setPriceType] = useState("all");
+    const [category, setCategory] = useState("");
+    const [location, setLocation] = useState("");
+    const [priceType, setPriceType] = useState("");
 
-    const categories = [
-        ...new Set(
-            sampleEvents.map((event) => event.category)
-        )
-    ];
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
-    const locations = [
-        ...new Set(
-            sampleEvents.map((event) => event.location)
-        )
-    ];
 
-    const filteredEvents = useMemo(() => {
-        const normalizedSearch = searchTerm
-            .trim()
-            .toLowerCase();
+    /*
+    |--------------------------------------------------------------------------
+    | Load categories
+    |--------------------------------------------------------------------------
+    */
 
-        return sampleEvents.filter((event) => {
-            const matchesSearch =
-                event.name
-                    .toLowerCase()
-                    .includes(normalizedSearch);
+    useEffect(() => {
+        let active = true;
 
-            const matchesCategory =
-                category === "all" ||
-                event.category === category;
+        const loadCategories = async () => {
+            try {
+                const data =
+                    await eventApi.getCategories();
 
-            const matchesLocation =
-                location === "all" ||
-                event.location === location;
+                if (active) {
+                    setCategories(
+                        data.categories || []
+                    );
+                }
+            } catch (requestError) {
+                if (active) {
+                    setError(
+                        requestError.message
+                        || "Unable to load categories."
+                    );
+                }
+            }
+        };
 
-            const matchesPrice =
-                priceType === "all" ||
-                (priceType === "free" &&
-                    event.price === 0) ||
-                (priceType === "paid" &&
-                    event.price > 0);
+        loadCategories();
 
-            return (
-                matchesSearch &&
-                matchesCategory &&
-                matchesLocation &&
-                matchesPrice
-            );
-        });
+        return () => {
+            active = false;
+        };
+    }, []);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load published events whenever filters change
+    |--------------------------------------------------------------------------
+    */
+
+    useEffect(() => {
+        let active = true;
+
+        const timer = window.setTimeout(
+            async () => {
+                try {
+                    setLoading(true);
+                    setError("");
+
+                    const data =
+                        await eventApi.getPublicEvents({
+                            search:
+                                searchTerm.trim(),
+
+                            category,
+
+                            location:
+                                location.trim(),
+
+                            pricing: priceType
+                        });
+
+                    if (active) {
+                        setEvents(data.events || []);
+                    }
+                } catch (requestError) {
+                    if (active) {
+                        setError(
+                            requestError.message
+                            || "Unable to load events."
+                        );
+
+                        setEvents([]);
+                    }
+                } finally {
+                    if (active) {
+                        setLoading(false);
+                    }
+                }
+            },
+            350
+        );
+
+        return () => {
+            active = false;
+            window.clearTimeout(timer);
+        };
     }, [
         searchTerm,
         category,
@@ -65,12 +121,20 @@ function EventsPage() {
         priceType
     ]);
 
-    function resetFilters() {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reset filters
+    |--------------------------------------------------------------------------
+    */
+
+    const resetFilters = () => {
         setSearchTerm("");
-        setCategory("all");
-        setLocation("all");
-        setPriceType("all");
-    }
+        setCategory("");
+        setLocation("");
+        setPriceType("");
+    };
+
 
     return (
         <main className="events-page">
@@ -92,32 +156,62 @@ function EventsPage() {
                         location={location}
                         priceType={priceType}
                         categories={categories}
-                        locations={locations}
-                        onCategoryChange={setCategory}
-                        onLocationChange={setLocation}
-                        onPriceTypeChange={setPriceType}
+                        onCategoryChange={
+                            setCategory
+                        }
+                        onLocationChange={
+                            setLocation
+                        }
+                        onPriceTypeChange={
+                            setPriceType
+                        }
                         onReset={resetFilters}
                     />
                 </section>
 
+                {error && (
+                    <div
+                        className="alert alert-danger"
+                        role="alert"
+                    >
+                        {error}
+                    </div>
+                )}
+
                 <div className="events-results-heading">
                     <p>
-                        <strong>{filteredEvents.length}</strong>
+                        <strong>{events.length}</strong>
                         {" "}
-                        {filteredEvents.length === 1
+                        {events.length === 1
                             ? "event found"
                             : "events found"}
                     </p>
                 </div>
 
-                {filteredEvents.length > 0 ? (
+                {loading ? (
+                    <div className="text-center py-5">
+                        <div
+                            className="spinner-border"
+                            role="status"
+                            aria-label="Loading events"
+                        />
+
+                        <p className="mt-3">
+                            Loading published events...
+                        </p>
+                    </div>
+                ) : events.length > 0 ? (
                     <div className="row g-4">
-                        {filteredEvents.map((event) => (
+                        {events.map((eventRecord) => (
                             <div
-                                key={event.id}
+                                key={
+                                    eventRecord.event_id
+                                }
                                 className="col-md-6 col-lg-4"
                             >
-                                <EventCard event={event} />
+                                <EventCard
+                                    event={eventRecord}
+                                />
                             </div>
                         ))}
                     </div>

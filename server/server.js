@@ -8,6 +8,10 @@ import authRoutes from "./routes/authRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
 
 import ticketTypeRoutes from "./routes/ticketTypeRoutes.js";
+
+import adminRoutes from "./routes/adminRoutes.js";
+
+
 const app = express();
 
 const PORT = process.env.PORT || 5000;
@@ -62,6 +66,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 //
 app.use("/api", ticketTypeRoutes);
+//admin api
+app.use("/api/admin", adminRoutes);
 
 
 

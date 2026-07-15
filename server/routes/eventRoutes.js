@@ -16,6 +16,11 @@ import {
     requireApprovedOrganiser
 } from "../middleware/authMiddleware.js";
 
+import {
+    getPublicEventById,
+    getPublicEvents
+} from "../controllers/publicEventController.js";
+
 const router = express.Router();
 
 const organiserProtection = [
@@ -37,6 +42,12 @@ router.get(
     getCategories
 );
 
+
+// GET /api/events
+router.get(
+    "/",
+    getPublicEvents
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -90,6 +101,12 @@ router.delete(
     "/:eventId",
     organiserProtection,
     deleteDraftEvent
+);
+
+// GET /api/events/:eventId
+router.get(
+    "/:eventId",
+    getPublicEventById
 );
 
 export default router;

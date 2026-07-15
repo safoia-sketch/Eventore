@@ -1,26 +1,104 @@
-import { useEffect, useState } from "react";
+import {
+    useEffect,
+    useState
+} from "react";
+
 import { Link } from "react-router-dom";
 
 import EventCard from "../../components/events/EventCard";
-import sampleEvents from "../../data/sampleEvents";
-import { checkApiHealth } from "../../services/api";
+
+import {
+    checkApiHealth,
+    eventApi
+} from "../../services/api";
+
 
 function HomePage() {
-    const [apiStatus, setApiStatus] = useState("checking");
+    const [apiStatus, setApiStatus] =
+        useState("checking");
+
+    const [events, setEvents] = useState([]);
+    const [loadingEvents, setLoadingEvents] =
+        useState(true);
+
+    const [eventsError, setEventsError] =
+        useState("");
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check API connection
+    |--------------------------------------------------------------------------
+    */
 
     useEffect(() => {
-        async function connectToApi() {
+        let active = true;
+
+        const connectToApi = async () => {
             try {
                 await checkApiHealth();
-                setApiStatus("online");
+
+                if (active) {
+                    setApiStatus("online");
+                }
             } catch (error) {
                 console.error(error);
-                setApiStatus("offline");
+
+                if (active) {
+                    setApiStatus("offline");
+                }
             }
-        }
+        };
 
         connectToApi();
+
+        return () => {
+            active = false;
+        };
     }, []);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load published events
+    |--------------------------------------------------------------------------
+    */
+
+    useEffect(() => {
+        let active = true;
+
+        const loadPublishedEvents = async () => {
+            try {
+                setLoadingEvents(true);
+                setEventsError("");
+
+                const data =
+                    await eventApi.getPublicEvents();
+
+                if (active) {
+                    setEvents(data.events || []);
+                }
+            } catch (error) {
+                if (active) {
+                    setEventsError(
+                        error.message
+                        || "Unable to load upcoming events."
+                    );
+                }
+            } finally {
+                if (active) {
+                    setLoadingEvents(false);
+                }
+            }
+        };
+
+        loadPublishedEvents();
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
 
     return (
         <main>
@@ -32,16 +110,16 @@ function HomePage() {
                             <div
                                 className={`api-status api-status-${apiStatus}`}
                             >
-                                <span className="api-status-dot"></span>
+                                <span className="api-status-dot" />
 
-                                {apiStatus === "checking" &&
-                                    "Connecting..."}
+                                {apiStatus === "checking"
+                                    && "Connecting..."}
 
-                                {apiStatus === "online" &&
-                                    "Platform online"}
+                                {apiStatus === "online"
+                                    && "Platform online"}
 
-                                {apiStatus === "offline" &&
-                                    "Connection unavailable"}
+                                {apiStatus === "offline"
+                                    && "Connection unavailable"}
                             </div>
 
                             <p className="eventore-label mb-3">
@@ -50,7 +128,9 @@ function HomePage() {
 
                             <h1 className="home-hero-title">
                                 Find events worth
-                                <span> showing up for.</span>
+                                <span>
+                                    {" "}showing up for.
+                                </span>
                             </h1>
 
                             <p className="home-hero-description">
@@ -82,9 +162,14 @@ function HomePage() {
                                     <p>UPCOMING</p>
 
                                     <strong>
-                                        {String(
-                                            sampleEvents.length
-                                        ).padStart(2, "0")}
+                                        {loadingEvents
+                                            ? "--"
+                                            : String(
+                                                events.length
+                                            ).padStart(
+                                                2,
+                                                "0"
+                                            )}
                                     </strong>
 
                                     <span>
@@ -119,18 +204,61 @@ function HomePage() {
                         </Link>
                     </div>
 
-                    <div className="row g-4">
-                        {sampleEvents
-                            .slice(0, 3)
-                            .map((event) => (
-                                <div
-                                    key={event.id}
-                                    className="col-md-6 col-lg-4"
-                                >
-                                    <EventCard event={event} />
-                                </div>
-                            ))}
-                    </div>
+                    {eventsError && (
+                        <div
+                            className="alert alert-danger"
+                            role="alert"
+                        >
+                            {eventsError}
+                        </div>
+                    )}
+
+                    {loadingEvents && (
+                        <div className="text-center py-5">
+                            <div
+                                className="spinner-border"
+                                role="status"
+                                aria-label="Loading upcoming events"
+                            />
+
+                            <p className="mt-3">
+                                Loading upcoming events...
+                            </p>
+                        </div>
+                    )}
+
+                    {!loadingEvents
+                    && events.length === 0 && (
+                        <div className="glass-card p-5 text-center">
+                            <h3>No upcoming events</h3>
+
+                            <p className="text-secondary mb-0">
+                                Published events will appear here.
+                            </p>
+                        </div>
+                    )}
+
+                    {!loadingEvents
+                    && events.length > 0 && (
+                        <div className="row g-4">
+                            {events
+                                .slice(0, 3)
+                                .map((eventRecord) => (
+                                    <div
+                                        key={
+                                            eventRecord.event_id
+                                        }
+                                        className="col-md-6 col-lg-4"
+                                    >
+                                        <EventCard
+                                            event={
+                                                eventRecord
+                                            }
+                                        />
+                                    </div>
+                                ))}
+                        </div>
+                    )}
                 </div>
             </section>
         </main>

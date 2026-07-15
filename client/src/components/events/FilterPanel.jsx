@@ -3,7 +3,6 @@ function FilterPanel({
     location,
     priceType,
     categories,
-    locations,
     onCategoryChange,
     onLocationChange,
     onPriceTypeChange,
@@ -23,22 +22,32 @@ function FilterPanel({
                     id="category-filter"
                     value={category}
                     onChange={(event) =>
-                        onCategoryChange(event.target.value)
+                        onCategoryChange(
+                            event.target.value
+                        )
                     }
                     className="form-select eventore-input"
                 >
-                    <option value="all">
+                    <option value="">
                         All categories
                     </option>
 
-                    {categories.map((categoryName) => (
-                        <option
-                            key={categoryName}
-                            value={categoryName}
-                        >
-                            {categoryName}
-                        </option>
-                    ))}
+                    {categories.map(
+                        (categoryRecord) => (
+                            <option
+                                key={
+                                    categoryRecord.category_id
+                                }
+                                value={
+                                    categoryRecord.category_id
+                                }
+                            >
+                                {
+                                    categoryRecord.category_name
+                                }
+                            </option>
+                        )
+                    )}
                 </select>
             </div>
 
@@ -50,27 +59,18 @@ function FilterPanel({
                     Location
                 </label>
 
-                <select
+                <input
                     id="location-filter"
+                    type="search"
                     value={location}
                     onChange={(event) =>
-                        onLocationChange(event.target.value)
+                        onLocationChange(
+                            event.target.value
+                        )
                     }
-                    className="form-select eventore-input"
-                >
-                    <option value="all">
-                        All locations
-                    </option>
-
-                    {locations.map((locationName) => (
-                        <option
-                            key={locationName}
-                            value={locationName}
-                        >
-                            {locationName}
-                        </option>
-                    ))}
-                </select>
+                    className="form-control eventore-input"
+                    placeholder="City, venue or address"
+                />
             </div>
 
             <div>
@@ -85,11 +85,13 @@ function FilterPanel({
                     id="price-filter"
                     value={priceType}
                     onChange={(event) =>
-                        onPriceTypeChange(event.target.value)
+                        onPriceTypeChange(
+                            event.target.value
+                        )
                     }
                     className="form-select eventore-input"
                 >
-                    <option value="all">
+                    <option value="">
                         Free and paid
                     </option>
 

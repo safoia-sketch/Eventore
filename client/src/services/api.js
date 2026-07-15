@@ -102,6 +102,50 @@ export const eventApi = {
             method: "GET"
         }),
 
+    // Public: get published events with optional filters
+    getPublicEvents: (filters = {}) => {
+    const parameters = new URLSearchParams();
+
+    if (filters.search) {
+        parameters.set("search", filters.search);
+    }
+
+    if (filters.category) {
+        parameters.set(
+            "category",
+            filters.category
+        );
+    }
+
+    if (filters.location) {
+        parameters.set(
+            "location",
+            filters.location
+        );
+    }
+
+    if (filters.pricing) {
+        parameters.set(
+            "pricing",
+            filters.pricing
+        );
+    }
+
+    const query = parameters.toString();
+
+    return apiRequest(
+        `/events${query ? `?${query}` : ""}`,
+        {
+            method: "GET"
+        }
+    );
+    },
+
+    // Public: get one published event
+    getPublicEventById: (eventId) =>
+    apiRequest(`/events/${eventId}`, {
+        method: "GET"
+    }),
     // Organiser: get all owned events
     getMyEvents: () =>
         apiRequest("/events/mine", {
@@ -178,6 +222,79 @@ export const eventApi = {
             `/ticket-types/${ticketTypeId}`,
             {
                 method: "DELETE"
+            }
+        )
+};
+
+/*
+|--------------------------------------------------------------------------
+| Administrator API
+|--------------------------------------------------------------------------
+*/
+
+export const adminApi = {
+    // Get organiser accounts awaiting approval
+    getPendingOrganisers: () =>
+        apiRequest(
+            "/admin/organisers/pending",
+            {
+                method: "GET"
+            }
+        ),
+
+    // Approve an organiser account
+    approveOrganiser: (userId) =>
+        apiRequest(
+            `/admin/organisers/${userId}/approve`,
+            {
+                method: "PATCH"
+            }
+        ),
+
+    // Get events awaiting approval
+    getPendingEvents: () =>
+        apiRequest(
+            "/admin/events/pending",
+            {
+                method: "GET"
+            }
+        ),
+
+    // Review one pending event and its tickets
+    getPendingEvent: (eventId) =>
+        apiRequest(
+            `/admin/events/${eventId}`,
+            {
+                method: "GET"
+            }
+        ),
+
+    // Approve and publish an event
+    approveEvent: (eventId) =>
+        apiRequest(
+            `/admin/events/${eventId}/approve`,
+            {
+                method: "PATCH"
+            }
+        ),
+
+    // Return an event to draft with feedback
+    rejectEvent: (eventId, reason) =>
+        apiRequest(
+            `/admin/events/${eventId}/reject`,
+            {
+                method: "PATCH",
+                body: JSON.stringify({ reason })
+            }
+        ),
+
+    // Cancel a published event
+    cancelEvent: (eventId, reason) =>
+        apiRequest(
+            `/admin/events/${eventId}/cancel`,
+            {
+                method: "PATCH",
+                body: JSON.stringify({ reason })
             }
         )
 };
