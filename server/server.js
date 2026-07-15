@@ -5,9 +5,9 @@ import session from "express-session";
 
 import authRoutes from "./routes/authRoutes.js";
 
+import eventRoutes from "./routes/eventRoutes.js";
 
-
-
+import ticketTypeRoutes from "./routes/ticketTypeRoutes.js";
 const app = express();
 
 const PORT = process.env.PORT || 5000;
@@ -56,8 +56,12 @@ app.get("/api/health", (req, res) => {
         message: "Eventore API is running."
     });
 });
-
+//authantacation route 
 app.use("/api/auth", authRoutes);
+// event route
+app.use("/api/events", eventRoutes);
+//
+app.use("/api", ticketTypeRoutes);
 
 
 

@@ -3,6 +3,12 @@ import {
     useState
 } from "react";
 
+import {
+    Link,
+    useNavigate,
+    useParams
+} from "react-router-dom";
+
 import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
 import FormInput from "../../components/forms/FormInput";
@@ -25,74 +31,126 @@ const initialFormData = {
     contact_email: ""
 };
 
-function CreateEventPage() {
+function EditEventPage() {
+    const { eventId } = useParams();
+    const navigate = useNavigate();
+
     const [formData, setFormData] =
         useState(initialFormData);
 
     const [categories, setCategories] = useState([]);
+    const [eventStatus, setEventStatus] = useState("draft");
     const [fieldErrors, setFieldErrors] = useState({});
-
-    const [successMessage, setSuccessMessage] =
-        useState("");
-
-    const [generalError, setGeneralError] =
-        useState("");
-
-    const [loadingCategories, setLoadingCategories] =
-        useState(true);
-
+    const [generalError, setGeneralError] = useState("");
+    const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
     const minimumDate = new Date()
         .toISOString()
         .split("T")[0];
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Load event categories
-    |--------------------------------------------------------------------------
-    */
-
     useEffect(() => {
         let active = true;
 
-        const loadCategories = async () => {
+        const loadPageData = async () => {
             try {
-                setLoadingCategories(true);
+                setLoading(true);
+                setGeneralError("");
 
-                const data = await eventApi.getCategories();
+                const [
+                    eventResponse,
+                    categoryResponse
+                ] = await Promise.all([
+                    eventApi.getMyEventById(eventId),
+                    eventApi.getCategories()
+                ]);
 
-                if (active) {
-                    setCategories(data.categories || []);
+                if (!active) {
+                    return;
                 }
+
+                const eventRecord = eventResponse.event;
+
+                setCategories(
+                    categoryResponse.categories || []
+                );
+
+                setEventStatus(eventRecord.status);
+
+                setFormData({
+                    event_name:
+                        eventRecord.event_name || "",
+
+                    category_id:
+                        String(eventRecord.category_id || ""),
+
+                    description:
+                        eventRecord.description || "",
+
+                    image_url:
+                        eventRecord.image_url || "",
+
+                    venue_name:
+                        eventRecord.venue_name || "",
+
+                    address:
+                        eventRecord.address || "",
+
+                    city:
+                        eventRecord.city || "",
+
+                    event_date:
+                        eventRecord.event_date
+                            ? eventRecord.event_date.slice(0, 10)
+                            : "",
+
+                    start_time:
+                        eventRecord.start_time
+                            ? eventRecord.start_time.slice(0, 5)
+                            : "",
+
+                    end_time:
+                        eventRecord.end_time
+                            ? eventRecord.end_time.slice(0, 5)
+                            : "",
+
+                    capacity:
+                        String(eventRecord.capacity || ""),
+
+                    refund_deadline:
+                        eventRecord.refund_deadline
+                            ? eventRecord.refund_deadline.slice(
+                                0,
+                                16
+                            )
+                            : "",
+
+                    refund_policy:
+                        eventRecord.refund_policy || "",
+
+                    contact_email:
+                        eventRecord.contact_email || ""
+                });
             } catch (error) {
                 if (active) {
                     setGeneralError(
                         error.message
-                        || "Unable to load event categories."
+                        || "Unable to load the event."
                     );
                 }
             } finally {
                 if (active) {
-                    setLoadingCategories(false);
+                    setLoading(false);
                 }
             }
         };
 
-        loadCategories();
+        loadPageData();
 
         return () => {
             active = false;
         };
-    }, []);
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Handle form changes
-    |--------------------------------------------------------------------------
-    */
+    }, [eventId]);
 
     const handleChange = (event) => {
         const { name, value } = event.target;
@@ -107,23 +165,14 @@ function CreateEventPage() {
             [name]: undefined
         }));
 
-        setSuccessMessage("");
         setGeneralError("");
     };
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Submit event
-    |--------------------------------------------------------------------------
-    */
 
     const handleSubmit = async (event) => {
         event.preventDefault();
 
         setSubmitting(true);
         setFieldErrors({});
-        setSuccessMessage("");
         setGeneralError("");
 
         try {
@@ -138,18 +187,15 @@ function CreateEventPage() {
                     formData.refund_policy || null
             };
 
-            const data = await eventApi.createEvent(
+            await eventApi.updateEvent(
+                eventId,
                 eventData
             );
 
-            setSuccessMessage(
-                `${data.message} Event ID: ${data.event.event_id}`
-            );
-
-            setFormData(initialFormData);
+            navigate("/organiser/events");
         } catch (error) {
             setGeneralError(
-                error.message || "Unable to create the event."
+                error.message || "Unable to update the event."
             );
 
             if (
@@ -163,38 +209,72 @@ function CreateEventPage() {
         }
     };
 
+    if (loading) {
+        return (
+            <div className="text-center py-5">
+                <div
+                    className="spinner-border"
+                    role="status"
+                    aria-label="Loading event"
+                />
 
-    /*
-    |--------------------------------------------------------------------------
-    | Clear form
-    |--------------------------------------------------------------------------
-    */
+                <p className="mt-3">Loading event...</p>
+            </div>
+        );
+    }
 
-    const clearForm = () => {
-        setFormData(initialFormData);
-        setFieldErrors({});
-        setSuccessMessage("");
-        setGeneralError("");
-    };
+    if (generalError && !formData.event_name) {
+        return (
+            <div>
+                <div
+                    className="alert alert-danger"
+                    role="alert"
+                >
+                    {generalError}
+                </div>
 
+                <Link
+                    to="/organiser/events"
+                    className="btn btn-eventore-outline"
+                >
+                    Back to my events
+                </Link>
+            </div>
+        );
+    }
+
+    if (eventStatus !== "draft") {
+        return (
+            <div>
+                <PageHeader
+                    label="ORGANISER"
+                    title="Event cannot be edited"
+                    description="Only draft events can be edited."
+                    action={
+                        <StatusBadge status={eventStatus} />
+                    }
+                />
+
+                <Link
+                    to="/organiser/events"
+                    className="btn btn-eventore-outline"
+                >
+                    Back to my events
+                </Link>
+            </div>
+        );
+    }
 
     return (
         <div>
             <PageHeader
                 label="ORGANISER"
-                title="Create an event"
-                description="Enter the essential information for your new event."
-                action={<StatusBadge status="draft" />}
+                title="Edit event"
+                description="Update the information for your draft event."
+                action={
+                    <StatusBadge status={eventStatus} />
+                }
             />
-
-            {successMessage && (
-                <div
-                    className="alert eventore-success-alert"
-                    role="status"
-                >
-                    {successMessage}
-                </div>
-            )}
 
             {generalError && (
                 <div
@@ -218,8 +298,8 @@ function CreateEventPage() {
                             <h2>Basic information</h2>
 
                             <p>
-                                Introduce the event to potential
-                                attendees.
+                                Update the event’s public
+                                information.
                             </p>
                         </div>
                     </div>
@@ -229,25 +309,20 @@ function CreateEventPage() {
                         name="event_name"
                         value={formData.event_name}
                         onChange={handleChange}
-                        placeholder="For example: Kampala Technology Summit"
                         error={fieldErrors.event_name}
                         required
                     />
 
                     <div className="mb-3">
                         <label
-                            htmlFor="event-category"
+                            htmlFor="edit-category"
                             className="form-label"
                         >
-                            Category
-
-                            <span className="required-mark">
-                                {" "}*
-                            </span>
+                            Category *
                         </label>
 
                         <select
-                            id="event-category"
+                            id="edit-category"
                             name="category_id"
                             value={formData.category_id}
                             onChange={handleChange}
@@ -256,13 +331,10 @@ function CreateEventPage() {
                                     ? "is-invalid"
                                     : ""
                             }`}
-                            disabled={loadingCategories}
                             required
                         >
                             <option value="">
-                                {loadingCategories
-                                    ? "Loading categories..."
-                                    : "Select a category"}
+                                Select a category
                             </option>
 
                             {categories.map((category) => (
@@ -284,18 +356,14 @@ function CreateEventPage() {
 
                     <div className="mb-3">
                         <label
-                            htmlFor="event-description"
+                            htmlFor="edit-description"
                             className="form-label"
                         >
-                            Description
-
-                            <span className="required-mark">
-                                {" "}*
-                            </span>
+                            Description *
                         </label>
 
                         <textarea
-                            id="event-description"
+                            id="edit-description"
                             name="description"
                             value={formData.description}
                             onChange={handleChange}
@@ -305,7 +373,6 @@ function CreateEventPage() {
                                     : ""
                             }`}
                             rows="6"
-                            placeholder="Describe the event, its purpose and what attendees can expect."
                             required
                         />
 
@@ -322,7 +389,6 @@ function CreateEventPage() {
                         type="url"
                         value={formData.image_url}
                         onChange={handleChange}
-                        placeholder="https://example.com/event-image.jpg"
                         error={fieldErrors.image_url}
                     />
                 </section>
@@ -335,8 +401,7 @@ function CreateEventPage() {
                             <h2>Venue and location</h2>
 
                             <p>
-                                Tell attendees where the event will
-                                take place.
+                                Update where the event takes place.
                             </p>
                         </div>
                     </div>
@@ -348,7 +413,6 @@ function CreateEventPage() {
                                 name="venue_name"
                                 value={formData.venue_name}
                                 onChange={handleChange}
-                                placeholder="For example: Innovation Village"
                                 error={fieldErrors.venue_name}
                                 required
                             />
@@ -360,7 +424,6 @@ function CreateEventPage() {
                                 name="city"
                                 value={formData.city}
                                 onChange={handleChange}
-                                placeholder="For example: Kampala"
                                 error={fieldErrors.city}
                                 required
                             />
@@ -372,7 +435,6 @@ function CreateEventPage() {
                         name="address"
                         value={formData.address}
                         onChange={handleChange}
-                        placeholder="Street, area and venue directions"
                         error={fieldErrors.address}
                         required
                     />
@@ -386,8 +448,8 @@ function CreateEventPage() {
                             <h2>Date and capacity</h2>
 
                             <p>
-                                Configure when the event happens and
-                                how many people may attend.
+                                Update the schedule and attendance
+                                limit.
                             </p>
                         </div>
                     </div>
@@ -439,7 +501,6 @@ function CreateEventPage() {
                                 type="number"
                                 value={formData.capacity}
                                 onChange={handleChange}
-                                placeholder="For example: 300"
                                 min="1"
                                 step="1"
                                 error={fieldErrors.capacity}
@@ -463,20 +524,19 @@ function CreateEventPage() {
 
                     <div className="mb-3">
                         <label
-                            htmlFor="refund-policy"
+                            htmlFor="edit-refund-policy"
                             className="form-label"
                         >
                             Refund policy
                         </label>
 
                         <textarea
-                            id="refund-policy"
+                            id="edit-refund-policy"
                             name="refund_policy"
                             value={formData.refund_policy}
                             onChange={handleChange}
                             className="form-control eventore-textarea"
                             rows="4"
-                            placeholder="Explain when attendees may request a cancellation or refund."
                         />
                     </div>
                 </section>
@@ -489,8 +549,7 @@ function CreateEventPage() {
                             <h2>Contact information</h2>
 
                             <p>
-                                Provide an email for attendee
-                                questions.
+                                Update the attendee contact email.
                             </p>
                         </div>
                     </div>
@@ -501,33 +560,27 @@ function CreateEventPage() {
                         type="email"
                         value={formData.contact_email}
                         onChange={handleChange}
-                        placeholder="events@example.com"
                         error={fieldErrors.contact_email}
                         required
                     />
                 </section>
 
                 <div className="event-form-actions">
-                    <button
-                        type="button"
+                    <Link
+                        to="/organiser/events"
                         className="btn btn-eventore-outline"
-                        onClick={clearForm}
-                        disabled={submitting}
                     >
-                        Clear form
-                    </button>
+                        Cancel
+                    </Link>
 
                     <button
                         type="submit"
                         className="btn btn-eventore"
-                        disabled={
-                            submitting
-                            || loadingCategories
-                        }
+                        disabled={submitting}
                     >
                         {submitting
-                            ? "Saving draft..."
-                            : "Save as draft"}
+                            ? "Saving changes..."
+                            : "Save changes"}
                     </button>
                 </div>
             </form>
@@ -535,4 +588,4 @@ function CreateEventPage() {
     );
 }
 
-export default CreateEventPage;
+export default EditEventPage;

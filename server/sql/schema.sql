@@ -2,9 +2,14 @@
 -- EVENTORE DATABASE SCHEMA
 -- =============================================
 
--- 1. Users
+
+-- =============================================
+-- 1. USERS
+-- =============================================
+
 CREATE TABLE IF NOT EXISTS users (
     user_id SERIAL PRIMARY KEY,
+
     full_name VARCHAR(120) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
@@ -34,9 +39,13 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 
--- 2. Event categories
+-- =============================================
+-- 2. EVENT CATEGORIES
+-- =============================================
+
 CREATE TABLE IF NOT EXISTS event_categories (
     category_id SERIAL PRIMARY KEY,
+
     category_name VARCHAR(100) NOT NULL UNIQUE,
 
     status VARCHAR(20) NOT NULL DEFAULT 'active'
@@ -51,7 +60,10 @@ CREATE TABLE IF NOT EXISTS event_categories (
 );
 
 
--- 3. Events
+-- =============================================
+-- 3. EVENTS
+-- =============================================
+
 CREATE TABLE IF NOT EXISTS events (
     event_id SERIAL PRIMARY KEY,
 
@@ -88,9 +100,12 @@ CREATE TABLE IF NOT EXISTS events (
                 'published',
                 'sold_out',
                 'cancelled',
-                'completed'
+                'completed',
+                'archived'
             )
         ),
+
+    rejection_reason TEXT,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -99,7 +114,10 @@ CREATE TABLE IF NOT EXISTS events (
 );
 
 
--- 4. Ticket types
+-- =============================================
+-- 4. TICKET TYPES
+-- =============================================
+
 CREATE TABLE IF NOT EXISTS ticket_types (
     ticket_type_id SERIAL PRIMARY KEY,
 
@@ -129,6 +147,7 @@ CREATE TABLE IF NOT EXISTS ticket_types (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CHECK (quantity_remaining <= quantity_total),
+
     CHECK (
         sale_end IS NULL
         OR sale_start IS NULL
@@ -139,7 +158,10 @@ CREATE TABLE IF NOT EXISTS ticket_types (
 );
 
 
--- 5. Bookings
+-- =============================================
+-- 5. BOOKINGS
+-- =============================================
+
 CREATE TABLE IF NOT EXISTS bookings (
     booking_id SERIAL PRIMARY KEY,
 
@@ -170,7 +192,10 @@ CREATE TABLE IF NOT EXISTS bookings (
 );
 
 
--- 6. Booking items
+-- =============================================
+-- 6. BOOKING ITEMS
+-- =============================================
+
 CREATE TABLE IF NOT EXISTS booking_items (
     booking_item_id SERIAL PRIMARY KEY,
 
@@ -193,7 +218,10 @@ CREATE TABLE IF NOT EXISTS booking_items (
 );
 
 
--- 7. Payments
+-- =============================================
+-- 7. PAYMENTS
+-- =============================================
+
 CREATE TABLE IF NOT EXISTS payments (
     payment_id SERIAL PRIMARY KEY,
 
@@ -228,7 +256,10 @@ CREATE TABLE IF NOT EXISTS payments (
 );
 
 
--- 8. Digital tickets
+-- =============================================
+-- 8. DIGITAL TICKETS
+-- =============================================
+
 CREATE TABLE IF NOT EXISTS tickets (
     ticket_id SERIAL PRIMARY KEY,
 
@@ -254,7 +285,10 @@ CREATE TABLE IF NOT EXISTS tickets (
 );
 
 
--- 9. Check-ins
+-- =============================================
+-- 9. CHECK-INS
+-- =============================================
+
 CREATE TABLE IF NOT EXISTS check_ins (
     check_in_id SERIAL PRIMARY KEY,
 
@@ -271,7 +305,10 @@ CREATE TABLE IF NOT EXISTS check_ins (
 );
 
 
--- 10. Cancellations
+-- =============================================
+-- 10. CANCELLATIONS
+-- =============================================
+
 CREATE TABLE IF NOT EXISTS cancellations (
     cancellation_id SERIAL PRIMARY KEY,
 
@@ -327,3 +364,22 @@ CREATE INDEX IF NOT EXISTS idx_booking_items_booking
 
 CREATE INDEX IF NOT EXISTS idx_tickets_attendee
     ON tickets(attendee_id);
+
+
+-- =============================================
+-- INITIAL EVENT CATEGORIES
+-- =============================================
+
+INSERT INTO event_categories (category_name)
+VALUES
+    ('Business'),
+    ('Education'),
+    ('Entertainment'),
+    ('Food and Drink'),
+    ('Health and Wellness'),
+    ('Music'),
+    ('Sports'),
+    ('Technology'),
+    ('Workshop'),
+    ('Other')
+ON CONFLICT (category_name) DO NOTHING;

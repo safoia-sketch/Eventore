@@ -40,7 +40,11 @@ import AdminEventsPage from "./pages/admin/AdminEventsPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 
 // import { Route, Routes } from "react-router-dom";
+//
+import EditEventPage from "./pages/organiser/EditEventPage";
 
+//
+import TicketTypesPage from "./pages/organiser/TicketTypesPage";
 
 function App() {
     return (
@@ -166,6 +170,28 @@ function App() {
                             <CreateEventPage />
                         </ProtectedRoute>
                     }
+                />
+                <Route
+                       path="/organiser/events/:eventId/edit"
+                       element={
+                       <ProtectedRoute
+                       allowedRoles={["organiser"]}
+                       requireApproval={true}
+                        >
+                        <EditEventPage />
+                        </ProtectedRoute>
+                        }
+                />
+                <Route
+                       path="/organiser/events/:eventId/tickets"
+                       element={
+                       <ProtectedRoute
+                       allowedRoles={["organiser"]}
+                       requireApproval={true}
+                       >
+                       <TicketTypesPage />
+                       </ProtectedRoute>
+                       }
                 />
             </Route>
 

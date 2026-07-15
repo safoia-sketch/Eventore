@@ -1,6 +1,6 @@
 const API_BASE_URL =
-    import.meta.env.VITE_API_URL ||
-    "http://localhost:5000/api";
+    import.meta.env.VITE_API_URL
+    || "http://localhost:5000/api";
 
 export const apiRequest = async (
     endpoint,
@@ -37,18 +37,33 @@ export const apiRequest = async (
         );
 
         error.status = response.status;
-        error.errors = data.errors || [];
+        error.errors = data.errors || {};
 
         throw error;
     }
 
     return data;
 };
+
+
+/*
+|--------------------------------------------------------------------------
+| Health API
+|--------------------------------------------------------------------------
+*/
+
 export const checkApiHealth = () => {
     return apiRequest("/health", {
         method: "GET"
     });
 };
+
+
+/*
+|--------------------------------------------------------------------------
+| Authentication API
+|--------------------------------------------------------------------------
+*/
 
 export const authApi = {
     register: (formData) =>
@@ -72,4 +87,97 @@ export const authApi = {
         apiRequest("/auth/logout", {
             method: "POST"
         })
+};
+
+/*
+|--------------------------------------------------------------------------
+| Event and ticket-type API
+|--------------------------------------------------------------------------
+*/
+
+export const eventApi = {
+    // Public: get active event categories
+    getCategories: () =>
+        apiRequest("/events/categories", {
+            method: "GET"
+        }),
+
+    // Organiser: get all owned events
+    getMyEvents: () =>
+        apiRequest("/events/mine", {
+            method: "GET"
+        }),
+
+    // Organiser: get one owned event
+    getMyEventById: (eventId) =>
+        apiRequest(`/events/mine/${eventId}`, {
+            method: "GET"
+        }),
+
+    // Organiser: create a draft event
+    createEvent: (formData) =>
+        apiRequest("/events", {
+            method: "POST",
+            body: JSON.stringify(formData)
+        }),
+
+    // Organiser: update an owned draft
+    updateEvent: (eventId, formData) =>
+        apiRequest(`/events/${eventId}`, {
+            method: "PUT",
+            body: JSON.stringify(formData)
+        }),
+    
+    // Organiser: submit a draft for administrator approval
+    submitEvent: (eventId) =>
+        apiRequest(`/events/${eventId}/submit`, {
+            method: "POST"
+        }),
+
+    // Organiser: delete an owned draft
+    deleteEvent: (eventId) =>
+        apiRequest(`/events/${eventId}`, {
+            method: "DELETE"
+        }),
+
+    // Organiser: get an event's ticket types
+    getTicketTypes: (eventId) =>
+        apiRequest(
+            `/events/${eventId}/ticket-types`,
+            {
+                method: "GET"
+            }
+        ),
+
+    // Organiser: create a ticket type
+    createTicketType: (eventId, formData) =>
+        apiRequest(
+            `/events/${eventId}/ticket-types`,
+            {
+                method: "POST",
+                body: JSON.stringify(formData)
+            }
+        ),
+
+    // Organiser: update a ticket type
+    updateTicketType: (
+        ticketTypeId,
+        formData
+    ) =>
+        apiRequest(
+            `/ticket-types/${ticketTypeId}`,
+            {
+                method: "PUT",
+                body: JSON.stringify(formData)
+            }
+        ),
+
+    // Organiser: delete a ticket type
+    deleteTicketType: (ticketTypeId) =>
+        apiRequest(
+            `/ticket-types/${ticketTypeId}`,
+            {
+                method: "DELETE"
+            }
+        )
 };
