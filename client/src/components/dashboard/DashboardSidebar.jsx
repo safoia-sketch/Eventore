@@ -1,4 +1,10 @@
-import { NavLink } from "react-router-dom";
+import { useState } from "react";
+import {
+    NavLink,
+    useNavigate
+} from "react-router-dom";
+
+import { useAuth } from "../../context/AuthContext";
 
 const navigationByRole = {
     attendee: [
@@ -59,19 +65,74 @@ const navigationByRole = {
 };
 
 function DashboardSidebar({ role }) {
-    const navigation = navigationByRole[role] || [];
+    const navigate = useNavigate();
+
+    const {
+        user,
+        logout
+    } = useAuth();
+
+    const [isLoggingOut, setIsLoggingOut] =
+        useState(false);
+
+    const [logoutError, setLogoutError] =
+        useState("");
+
+    const navigation =
+        navigationByRole[role] || [];
+
+    async function handleLogout() {
+        try {
+            setIsLoggingOut(true);
+            setLogoutError("");
+
+            await logout();
+
+            navigate("/login", {
+                replace: true
+            });
+        } catch (error) {
+            console.error(
+                "Dashboard logout error:",
+                error
+            );
+
+            setLogoutError(
+                "Logout failed. Please try again."
+            );
+        } finally {
+            setIsLoggingOut(false);
+        }
+    }
 
     return (
         <aside className="dashboard-sidebar">
             <div>
-                <p className="dashboard-logo">EVENTORE</p>
+                <p className="dashboard-logo">
+                    EVENTORE
+                </p>
 
                 <p className="dashboard-role">
                     {role}
                 </p>
+
+                {user && (
+                    <div className="dashboard-user">
+                        <strong>
+                            {user.full_name}
+                        </strong>
+
+                        <span>
+                            {user.email}
+                        </span>
+                    </div>
+                )}
             </div>
 
-            <nav className="dashboard-navigation">
+            <nav
+                className="dashboard-navigation"
+                aria-label={`${role} dashboard navigation`}
+            >
                 {navigation.map((item) => (
                     <NavLink
                         key={item.path}
@@ -88,12 +149,27 @@ function DashboardSidebar({ role }) {
                 ))}
             </nav>
 
-            <button
-                type="button"
-                className="btn btn-eventore-outline w-100"
-            >
-                Logout
-            </button>
+            <div>
+                {logoutError && (
+                    <p
+                        className="registration-error"
+                        role="alert"
+                    >
+                        {logoutError}
+                    </p>
+                )}
+
+                <button
+                    type="button"
+                    className="btn btn-eventore-outline w-100"
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                >
+                    {isLoggingOut
+                        ? "Logging out..."
+                        : "Logout"}
+                </button>
+            </div>
         </aside>
     );
 }

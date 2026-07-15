@@ -5,8 +5,7 @@ import session from "express-session";
 
 import authRoutes from "./routes/authRoutes.js";
 
-//temporally test route 
-import testRoutes from "./routes/testRoutes.js";
+
 
 
 const app = express();
@@ -59,7 +58,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
-app.use("/api/test", testRoutes);
+
 
 
 
