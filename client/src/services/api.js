@@ -287,6 +287,7 @@ export const adminApi = {
                 body: JSON.stringify({ reason })
             }
         ),
+    
 
     // Cancel a published event
     cancelEvent: (eventId, reason) =>
@@ -297,4 +298,51 @@ export const adminApi = {
                 body: JSON.stringify({ reason })
             }
         )
+};
+
+/*
+|--------------------------------------------------------------------------
+| Booking API
+|--------------------------------------------------------------------------
+*/
+
+/*
+|--------------------------------------------------------------------------
+| Booking API
+|--------------------------------------------------------------------------
+*/
+
+export const bookingApi = {
+    createBooking: (bookingData) =>
+        apiRequest("/bookings", {
+            method: "POST",
+            body: JSON.stringify(bookingData)
+        }),
+
+    getMyBookings: () =>
+        apiRequest("/bookings/me", {
+            method: "GET"
+        }),
+
+    getBookingById: (bookingId) =>
+        apiRequest(`/bookings/${bookingId}`, {
+            method: "GET"
+        })
+};
+/*
+|--------------------------------------------------------------------------
+| Digital ticket API
+|--------------------------------------------------------------------------
+*/
+
+export const ticketApi = {
+    getMyTickets: () =>
+        apiRequest("/tickets/me", {
+            method: "GET"
+        }),
+
+    getTicketById: (ticketId) =>
+        apiRequest(`/tickets/${ticketId}`, {
+            method: "GET"
+        })
 };

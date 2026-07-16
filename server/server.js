@@ -11,6 +11,9 @@ import ticketTypeRoutes from "./routes/ticketTypeRoutes.js";
 
 import adminRoutes from "./routes/adminRoutes.js";
 
+import bookingRoutes from "./routes/bookingRoutes.js";
+
+import ticketRoutes from "./routes/ticketRoutes.js";
 
 const app = express();
 
@@ -68,7 +71,10 @@ app.use("/api/events", eventRoutes);
 app.use("/api", ticketTypeRoutes);
 //admin api
 app.use("/api/admin", adminRoutes);
-
+//booking api
+app.use("/api/bookings", bookingRoutes);
+//
+app.use("/api/tickets", ticketRoutes);
 
 
 

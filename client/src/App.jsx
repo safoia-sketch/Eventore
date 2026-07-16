@@ -25,6 +25,7 @@ import MyTicketsPage from "./pages/attendee/MyTicketsPage";
 import CheckoutPage from "./pages/attendee/CheckoutPage";
 import TicketPage from "./pages/attendee/TicketPage";
 
+import BookingConfirmationPage from "./pages/attendee/BookingConfirmationPage";
 // Organiser pages
 import OrganiserDashboard from "./pages/organiser/OrganiserDashboard";
 import MyEventsPage from "./pages/organiser/MyEventsPage";
@@ -103,6 +104,16 @@ function App() {
                         allowedRoles={["attendee"]}
                     >
                         <TicketPage />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/bookings/:bookingId/confirmation"
+                 element={
+                    <ProtectedRoute
+                    allowedRoles={["attendee"]}
+                    >
+                    <BookingConfirmationPage />
                     </ProtectedRoute>
                 }
             />

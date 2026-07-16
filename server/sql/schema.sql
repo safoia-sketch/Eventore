@@ -218,6 +218,14 @@ CREATE TABLE IF NOT EXISTS booking_items (
 );
 
 
+-------------------------------------
+booking_reference VARCHAR(100) NOT NULL UNIQUE,
+
+idempotency_key VARCHAR(100),
+
+status VARCHAR(20) NOT NULL DEFAULT 'pending'
+
+
 -- =============================================
 -- 7. PAYMENTS
 -- =============================================
@@ -364,6 +372,10 @@ CREATE INDEX IF NOT EXISTS idx_booking_items_booking
 
 CREATE INDEX IF NOT EXISTS idx_tickets_attendee
     ON tickets(attendee_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_attendee_idempotency
+    ON bookings(attendee_id, idempotency_key)
+WHERE idempotency_key IS NOT NULL;
 
 
 -- =============================================
