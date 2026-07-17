@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import {
     Link,
     NavLink,
@@ -6,7 +7,7 @@ import {
 } from "react-router-dom";
 
 import eventoreLogo from "../../assets/images/Eventore_logo.png";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
 
 const dashboardPaths = {
     attendee: "/attendee",
@@ -47,6 +48,7 @@ function Navbar() {
             await logout();
 
             closeMenu();
+
             navigate("/login", {
                 replace: true
             });
@@ -135,41 +137,45 @@ function Navbar() {
                                     About
                                 </NavLink>
                             </li>
+
+                            {user && (
+                                <li className="nav-item">
+                                    <NavLink
+                                        to={
+                                            dashboardPaths[
+                                                user.role
+                                            ] || "/"
+                                        }
+                                        className={
+                                            getNavLinkClass
+                                        }
+                                        onClick={
+                                            closeMenu
+                                        }
+                                    >
+                                        Dashboard
+                                    </NavLink>
+                                </li>
+                            )}
                         </ul>
 
                         {!loading && (
                             <div className="d-flex flex-column flex-lg-row gap-2 mt-3 mt-lg-0">
                                 {user ? (
-                                    <>
-                                        <Link
-                                            to={
-                                                dashboardPaths[
-                                                    user.role
-                                                ] || "/"
-                                            }
-                                            className="btn btn-eventore-outline btn-sm"
-                                            onClick={
-                                                closeMenu
-                                            }
-                                        >
-                                            Dashboard
-                                        </Link>
-
-                                        <button
-                                            type="button"
-                                            className="btn btn-eventore btn-sm"
-                                            onClick={
-                                                handleLogout
-                                            }
-                                            disabled={
-                                                isLoggingOut
-                                            }
-                                        >
-                                            {isLoggingOut
-                                                ? "Logging out..."
-                                                : "Logout"}
-                                        </button>
-                                    </>
+                                    <button
+                                        type="button"
+                                        className="btn btn-eventore btn-sm"
+                                        onClick={
+                                            handleLogout
+                                        }
+                                        disabled={
+                                            isLoggingOut
+                                        }
+                                    >
+                                        {isLoggingOut
+                                            ? "Logging out..."
+                                            : "Logout"}
+                                    </button>
                                 ) : (
                                     <>
                                         <Link

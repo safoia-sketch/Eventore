@@ -234,6 +234,10 @@ export const eventApi = {
 
 export const adminApi = {
     // Get organiser accounts awaiting approval
+    getDashboard: () =>
+    apiRequest("/admin/dashboard", {
+        method: "GET"
+    }),
     getPendingOrganisers: () =>
         apiRequest(
             "/admin/organisers/pending",
@@ -300,11 +304,6 @@ export const adminApi = {
         )
 };
 
-/*
-|--------------------------------------------------------------------------
-| Booking API
-|--------------------------------------------------------------------------
-*/
 
 /*
 |--------------------------------------------------------------------------
@@ -327,7 +326,18 @@ export const bookingApi = {
     getBookingById: (bookingId) =>
         apiRequest(`/bookings/${bookingId}`, {
             method: "GET"
-        })
+        }),
+
+    cancelBooking: (bookingId, reason) =>
+        apiRequest(
+            `/bookings/${bookingId}/cancel`,
+            {
+                method: "POST",
+                body: JSON.stringify({
+                    reason
+                })
+            }
+        )
 };
 /*
 |--------------------------------------------------------------------------
@@ -343,6 +353,37 @@ export const ticketApi = {
 
     getTicketById: (ticketId) =>
         apiRequest(`/tickets/${ticketId}`, {
+            method: "GET"
+        })
+};
+/*
+|--------------------------------------------------------------------------
+| Staff check-in API
+|--------------------------------------------------------------------------
+*/
+
+export const checkInApi = {
+    getEvents: () =>
+        apiRequest("/check-ins/events", {
+            method: "GET"
+        }),
+
+    validateTicket: (checkInData) =>
+        apiRequest("/check-ins/validate", {
+            method: "POST",
+            body: JSON.stringify(checkInData)
+        })
+};
+
+/*
+|--------------------------------------------------------------------------
+| Organiser dashboard API
+|--------------------------------------------------------------------------
+*/
+
+export const organiserApi = {
+    getDashboard: () =>
+        apiRequest("/organiser/dashboard", {
             method: "GET"
         })
 };

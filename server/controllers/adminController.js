@@ -1,4 +1,5 @@
 import {
+    getAdminDashboardData,
     approveOrganiserById,
     approvePendingEventById,
     cancelPublishedEventById,
@@ -17,6 +18,37 @@ const getValidId = (value) => {
     }
 
     return id;
+};
+/*
+|--------------------------------------------------------------------------
+| Get administrator dashboard
+|--------------------------------------------------------------------------
+*/
+
+export const getAdminDashboard = async (
+    req,
+    res
+) => {
+    try {
+        const dashboard =
+            await getAdminDashboardData();
+
+        return res.status(200).json({
+            success: true,
+            ...dashboard
+        });
+    } catch (error) {
+        console.error(
+            "Get administrator dashboard error:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message:
+                "Unable to load the administrator dashboard."
+        });
+    }
 };
 
 

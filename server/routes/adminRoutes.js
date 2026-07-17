@@ -7,6 +7,7 @@ import {
     getPendingEvent,
     getPendingEvents,
     getPendingOrganisers,
+    getAdminDashboard,
     rejectEvent
 } from "../controllers/adminController.js";
 
@@ -31,7 +32,17 @@ const administratorProtection = [
 
 router.use(administratorProtection);
 
+/*
+|--------------------------------------------------------------------------
+| Administrator dashboard
+|--------------------------------------------------------------------------
+*/
 
+// GET /api/admin/dashboard
+router.get(
+    "/dashboard",
+    getAdminDashboard
+);
 /*
 |--------------------------------------------------------------------------
 | Organiser approval

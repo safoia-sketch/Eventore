@@ -1,4 +1,5 @@
 import {
+    cancelOwnedBooking,
     createSafeBooking,
     getBookingsForAttendee,
     getOwnedBookingById
@@ -189,6 +190,63 @@ export const getMyBookings = async (
                     error.status
                         ? error.message
                         : "Unable to load your bookings."
+            });
+    }
+};
+
+
+/*
+|--------------------------------------------------------------------------
+| Cancel owned booking
+|--------------------------------------------------------------------------
+*/
+
+export const cancelBooking = async (
+    req,
+    res
+) => {
+    try {
+        const attendeeId =
+            req.session.user.user_id;
+
+        const bookingId =
+            Number(req.params.bookingId);
+
+        const { reason = "" } = req.body;
+
+        const result =
+            await cancelOwnedBooking({
+                bookingId,
+                attendeeId,
+                reason
+            });
+
+        return res.status(200).json({
+            success: true,
+
+            message:
+                result.cancellation.refund_status
+                === "simulated"
+                    ? "Booking cancelled and the test payment was marked as refunded."
+                    : "Booking cancelled successfully.",
+
+            ...result
+        });
+    } catch (error) {
+        console.error(
+            "Cancel booking error:",
+            error
+        );
+
+        return res
+            .status(error.status || 500)
+            .json({
+                success: false,
+
+                message:
+                    error.status
+                        ? error.message
+                        : "Unable to cancel the booking."
             });
     }
 };

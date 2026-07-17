@@ -1,14 +1,11 @@
 import {
-    createContext,
     useCallback,
-    useContext,
     useEffect,
     useState
 } from "react";
 
 import { authApi } from "../services/api.js";
-
-const AuthContext = createContext(null);
+import AuthContext from "./auth-context.js";
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -16,10 +13,11 @@ export const AuthProvider = ({ children }) => {
 
     const refreshUser = useCallback(async () => {
         try {
-            const data = await authApi.getCurrentUser();
+            const data =
+                await authApi.getCurrentUser();
+
             setUser(data.user);
         } catch (error) {
-            // A 401 response simply means there is no active session.
             if (error.status === 401) {
                 setUser(null);
                 return;
@@ -49,7 +47,8 @@ export const AuthProvider = ({ children }) => {
     };
 
     const login = async (formData) => {
-        const data = await authApi.login(formData);
+        const data =
+            await authApi.login(formData);
 
         setUser(data.user);
 
@@ -76,16 +75,4 @@ export const AuthProvider = ({ children }) => {
             {children}
         </AuthContext.Provider>
     );
-};
-
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-
-    if (!context) {
-        throw new Error(
-            "useAuth must be used inside AuthProvider."
-        );
-    }
-
-    return context;
 };

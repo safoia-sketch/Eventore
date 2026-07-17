@@ -15,6 +15,9 @@ import bookingRoutes from "./routes/bookingRoutes.js";
 
 import ticketRoutes from "./routes/ticketRoutes.js";
 
+import checkInRoutes from "./routes/checkInRoutes.js";
+
+import organiserRoutes from "./routes/organiserRoutes.js";
 const app = express();
 
 const PORT = process.env.PORT || 5000;
@@ -75,7 +78,10 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/bookings", bookingRoutes);
 //
 app.use("/api/tickets", ticketRoutes);
-
+//
+app.use("/api/check-ins", checkInRoutes);
+//
+app.use("/api/organiser", organiserRoutes);
 
 
 app.use((req, res) => {

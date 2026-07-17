@@ -1,6 +1,7 @@
 import express from "express";
 
 import {
+    cancelBooking,
     createBooking,
     getBookingById,
     getMyBookings
@@ -25,6 +26,12 @@ router.get(
     requireAuth,
     allowRoles("attendee"),
     getMyBookings
+);
+router.post(
+    "/:bookingId/cancel",
+    requireAuth,
+    allowRoles("attendee"),
+    cancelBooking
 );
 
 router.get(

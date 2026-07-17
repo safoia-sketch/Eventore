@@ -289,3 +289,224 @@ export const cancelPublishedEventById = async (
 
     return result.rows[0] || null;
 };
+
+
+/*
+|--------------------------------------------------------------------------
+| Get administrator dashboard data
+|--------------------------------------------------------------------------
+*/
+
+export const getAdminDashboardData = async () => {
+    const metricsResult = await pool.query(
+        `
+        SELECT
+            (
+                SELECT COUNT(*)::INTEGER
+                FROM users
+            ) AS total_users,
+
+            (
+                SELECT COUNT(*)::INTEGER
+                FROM users
+                WHERE account_status = 'active'
+            ) AS active_users,
+
+            (
+                SELECT COUNT(*)::INTEGER
+                FROM users
+                WHERE role = 'organiser'
+                  AND account_status = 'active'
+                  AND organiser_approved = TRUE
+            ) AS active_organisers,
+
+            (
+                SELECT COUNT(*)::INTEGER
+                FROM users
+                WHERE role = 'organiser'
+                  AND account_status = 'active'
+                  AND organiser_approved = FALSE
+            ) AS pending_organisers,
+
+            (
+                SELECT COUNT(*)::INTEGER
+                FROM events
+                WHERE status = 'pending'
+            ) AS pending_events,
+
+            (
+                SELECT COUNT(*)::INTEGER
+                FROM events
+                WHERE status = 'published'
+            ) AS published_events,
+
+            (
+                SELECT COUNT(*)::INTEGER
+                FROM bookings
+            ) AS total_bookings,
+
+            (
+                SELECT COUNT(*)::INTEGER
+                FROM bookings
+                WHERE status = 'confirmed'
+            ) AS confirmed_bookings,
+
+            (
+                SELECT COUNT(*)::INTEGER
+                FROM bookings
+                WHERE status = 'cancelled'
+            ) AS cancelled_bookings,
+
+            (
+                SELECT COUNT(*)::INTEGER
+                FROM payments
+                WHERE payment_status = 'successful'
+            ) AS successful_payments,
+
+            (
+                SELECT COALESCE(
+                    SUM(amount),
+                    0
+                )
+                FROM payments
+                WHERE payment_status = 'successful'
+            ) AS total_revenue,
+
+            (
+                SELECT COUNT(*)::INTEGER
+                FROM check_ins
+            ) AS total_check_ins
+        `
+    );
+
+    const upcomingEventsResult = await pool.query(
+        `
+        SELECT
+            e.event_id,
+            e.event_name,
+            e.event_date,
+            e.start_time,
+            e.venue_name,
+            e.city,
+            e.status,
+
+            ec.category_name,
+
+            u.full_name AS organiser_name,
+
+            COUNT(DISTINCT b.booking_id)
+                FILTER (
+                    WHERE b.status = 'confirmed'
+                )::INTEGER AS confirmed_bookings,
+
+            COALESCE(
+                SUM(bi.quantity)
+                    FILTER (
+                        WHERE b.status = 'confirmed'
+                    ),
+                0
+            )::INTEGER AS tickets_sold
+
+        FROM events e
+
+        JOIN users u
+            ON u.user_id = e.organiser_id
+
+        JOIN event_categories ec
+            ON ec.category_id = e.category_id
+
+        LEFT JOIN bookings b
+            ON b.event_id = e.event_id
+
+        LEFT JOIN booking_items bi
+            ON bi.booking_id = b.booking_id
+
+        WHERE e.event_date >= CURRENT_DATE
+          AND e.status IN (
+              'pending',
+              'published',
+              'sold_out'
+          )
+
+        GROUP BY
+            e.event_id,
+            ec.category_name,
+            u.full_name
+
+        ORDER BY
+            e.event_date ASC,
+            e.start_time ASC
+
+        LIMIT 10
+        `
+    );
+
+    const categoryResult = await pool.query(
+        `
+        SELECT
+            ec.category_id,
+            ec.category_name,
+
+            COUNT(DISTINCT e.event_id)::INTEGER
+                AS event_count,
+
+            COUNT(DISTINCT b.booking_id)
+                FILTER (
+                    WHERE b.status = 'confirmed'
+                )::INTEGER AS confirmed_bookings
+
+        FROM event_categories ec
+
+        LEFT JOIN events e
+            ON e.category_id = ec.category_id
+
+        LEFT JOIN bookings b
+            ON b.event_id = e.event_id
+
+        GROUP BY
+            ec.category_id,
+            ec.category_name
+
+        HAVING COUNT(DISTINCT e.event_id) > 0
+
+        ORDER BY
+            confirmed_bookings DESC,
+            event_count DESC,
+            ec.category_name ASC
+
+        LIMIT 8
+        `
+    );
+
+    const recentUsersResult = await pool.query(
+        `
+        SELECT
+            user_id,
+            full_name,
+            email,
+            role,
+            account_status,
+            organiser_approved,
+            created_at
+
+        FROM users
+
+        ORDER BY created_at DESC
+
+        LIMIT 8
+        `
+    );
+
+    return {
+        metrics: metricsResult.rows[0],
+
+        upcoming_events:
+            upcomingEventsResult.rows,
+
+        category_activity:
+            categoryResult.rows,
+
+        recent_users:
+            recentUsersResult.rows
+    };
+};

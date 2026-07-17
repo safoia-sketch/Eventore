@@ -13,6 +13,17 @@ function MyBookingsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    const [actionMessage, setActionMessage] =
+    useState("");
+
+    const [actionError, setActionError] =
+    useState("");
+
+    const [
+    cancellingBookingId,
+    setCancellingBookingId
+    ] = useState(null);
+
     useEffect(() => {
         let ignore = false;
 
@@ -44,6 +55,68 @@ function MyBookingsPage() {
             ignore = true;
         };
     }, []);
+    async function handleCancelBooking(booking) {
+    const confirmed = window.confirm(
+        `Cancel your booking for ${booking.event_name}? Cancelled tickets cannot be used for check-in.`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    const reason = window.prompt(
+        "Optional: enter a reason for cancellation.",
+        ""
+    );
+
+    /*
+     * Clicking Cancel on the prompt returns null,
+     * meaning the attendee stopped the action.
+     */
+    if (reason === null) {
+        return;
+    }
+
+    try {
+        setCancellingBookingId(
+            booking.booking_id
+        );
+
+        setActionError("");
+        setActionMessage("");
+
+        const result =
+            await bookingApi.cancelBooking(
+                booking.booking_id,
+                reason
+            );
+
+        setBookings((currentBookings) =>
+            currentBookings.map(
+                (currentBooking) =>
+                    currentBooking.booking_id
+                    === booking.booking_id
+                        ? {
+                              ...currentBooking,
+                              status: "cancelled",
+                              payment_status:
+                                  Number(
+                                      currentBooking.total_amount
+                                  ) > 0
+                                      ? "simulated_refund"
+                                      : currentBooking.payment_status
+                          }
+                        : currentBooking
+            )
+        );
+
+        setActionMessage(result.message);
+    } catch (requestError) {
+        setActionError(requestError.message);
+    } finally {
+        setCancellingBookingId(null);
+    }
+}
 
     function formatMoney(amount) {
         const numericAmount = Number(amount);
@@ -150,6 +223,23 @@ function MyBookingsPage() {
                     {error}
                 </div>
             )}
+            {actionMessage && (
+            <div
+                  className="alert eventore-success-alert"
+                  role="status"
+            >
+           {actionMessage}
+           </div>
+           )}
+
+           {actionError && (
+        <div
+        className="alert alert-danger"
+        role="alert"
+        >
+        {actionError}
+        </div>
+        )}
 
             {!error && bookings.length === 0 && (
                 <EmptyState
@@ -289,6 +379,24 @@ function MyBookingsPage() {
                                             >
                                                 View booking
                                             </Link>
+                                            {booking.status === "confirmed" && (
+                                            <button
+                                            type="button"
+                                            className="btn btn-outline-danger"
+                                            onClick={() =>
+                                            handleCancelBooking(booking)
+                                            }
+                                            disabled={
+                                            cancellingBookingId
+                                            === booking.booking_id
+                                            }
+                                            >
+                                            {cancellingBookingId
+                                            === booking.booking_id
+                                             ? "Cancelling..."
+                                            : "Cancel booking"}
+                                            </button>
+                                            )}
 
                                             {booking.status ===
                                                 "confirmed" && (

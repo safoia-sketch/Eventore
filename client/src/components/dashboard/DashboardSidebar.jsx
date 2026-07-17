@@ -1,10 +1,12 @@
 import { useState } from "react";
+
 import {
+    Link,
     NavLink,
     useNavigate
 } from "react-router-dom";
 
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
 
 const navigationByRole = {
     attendee: [
@@ -108,9 +110,13 @@ function DashboardSidebar({ role }) {
     return (
         <aside className="dashboard-sidebar">
             <div>
-                <p className="dashboard-logo">
+                <Link
+                    to="/"
+                    className="dashboard-logo text-decoration-none"
+                    aria-label="Eventore homepage"
+                >
                     EVENTORE
-                </p>
+                </Link>
 
                 <p className="dashboard-role">
                     {role}
@@ -122,9 +128,7 @@ function DashboardSidebar({ role }) {
                             {user.full_name}
                         </strong>
 
-                        <span>
-                            {user.email}
-                        </span>
+                        <span>{user.email}</span>
                     </div>
                 )}
             </div>
@@ -150,6 +154,13 @@ function DashboardSidebar({ role }) {
             </nav>
 
             <div>
+                <Link
+                    to="/"
+                    className="btn btn-eventore-outline w-100 mb-2"
+                >
+                    ← Back to Home
+                </Link>
+
                 {logoutError && (
                     <p
                         className="registration-error"
@@ -161,7 +172,7 @@ function DashboardSidebar({ role }) {
 
                 <button
                     type="button"
-                    className="btn btn-eventore-outline w-100"
+                    className="btn btn-eventore w-100"
                     onClick={handleLogout}
                     disabled={isLoggingOut}
                 >

@@ -846,3 +846,375 @@ export const getBookingsForAttendee = async (
 
     return result.rows;
 };
+/*
+|--------------------------------------------------------------------------
+| Cancel an owned confirmed booking
+|--------------------------------------------------------------------------
+*/
+
+export const cancelOwnedBooking = async ({
+    bookingId,
+    attendeeId,
+    reason = ""
+}) => {
+    const normalizedBookingId = Number(bookingId);
+    const normalizedAttendeeId =
+        Number(attendeeId);
+    const normalizedReason =
+        String(reason || "").trim();
+
+    if (
+        !Number.isInteger(normalizedBookingId)
+        || normalizedBookingId <= 0
+    ) {
+        throw createBookingError(
+            "Invalid booking ID."
+        );
+    }
+
+    if (
+        !Number.isInteger(normalizedAttendeeId)
+        || normalizedAttendeeId <= 0
+    ) {
+        throw createBookingError(
+            "Invalid attendee account.",
+            401
+        );
+    }
+
+    if (normalizedReason.length > 1000) {
+        throw createBookingError(
+            "Cancellation reason cannot exceed 1000 characters."
+        );
+    }
+
+    const client = await pool.connect();
+
+    try {
+        await client.query("BEGIN");
+
+        /*
+         * Lock the booking so two cancellation requests
+         * cannot process it simultaneously.
+         */
+        const bookingResult = await client.query(
+            `
+                SELECT
+                    b.booking_id,
+                    b.attendee_id,
+                    b.event_id,
+                    b.booking_reference,
+                    b.status,
+                    b.total_amount,
+
+                    e.event_name,
+                    e.event_date,
+                    e.start_time,
+                    e.refund_deadline,
+                    e.status AS event_status,
+
+                    (
+                        e.event_date + e.start_time
+                    ) > NOW() AS event_is_future,
+
+                    (
+                        e.refund_deadline IS NULL
+                        OR e.refund_deadline >= NOW()
+                    ) AS within_refund_deadline
+
+                FROM bookings b
+
+                INNER JOIN events e
+                    ON e.event_id = b.event_id
+
+                WHERE b.booking_id = $1
+                  AND b.attendee_id = $2
+
+                FOR UPDATE OF b
+            `,
+            [
+                normalizedBookingId,
+                normalizedAttendeeId
+            ]
+        );
+
+        if (bookingResult.rowCount === 0) {
+            throw createBookingError(
+                "Booking not found or you do not have permission to cancel it.",
+                404
+            );
+        }
+
+        const booking = bookingResult.rows[0];
+
+        if (booking.status === "cancelled") {
+            throw createBookingError(
+                "This booking has already been cancelled.",
+                409
+            );
+        }
+
+        if (booking.status !== "confirmed") {
+            throw createBookingError(
+                "Only a confirmed booking can be cancelled.",
+                409
+            );
+        }
+
+        if (!booking.event_is_future) {
+            throw createBookingError(
+                "This booking cannot be cancelled because the event has started or finished.",
+                409
+            );
+        }
+
+        if (!booking.within_refund_deadline) {
+            throw createBookingError(
+                "The cancellation deadline for this event has passed.",
+                409
+            );
+        }
+
+        /*
+         * Lock every ticket and its related ticket type.
+         * The consistent ordering reduces deadlock risk.
+         */
+        const ticketsResult = await client.query(
+            `
+                SELECT
+                    t.ticket_id,
+                    t.ticket_status,
+
+                    tt.ticket_type_id,
+                    tt.ticket_name,
+                    tt.refund_eligible
+
+                FROM tickets t
+
+                INNER JOIN booking_items bi
+                    ON bi.booking_item_id =
+                       t.booking_item_id
+
+                INNER JOIN ticket_types tt
+                    ON tt.ticket_type_id =
+                       bi.ticket_type_id
+
+                WHERE bi.booking_id = $1
+
+                ORDER BY
+                    tt.ticket_type_id,
+                    t.ticket_id
+
+                FOR UPDATE OF t, tt
+            `,
+            [normalizedBookingId]
+        );
+
+        if (ticketsResult.rowCount === 0) {
+            throw createBookingError(
+                "This booking has no active digital tickets to cancel.",
+                409
+            );
+        }
+
+        const usedTicket =
+            ticketsResult.rows.find(
+                (ticket) =>
+                    ticket.ticket_status === "used"
+            );
+
+        if (usedTicket) {
+            throw createBookingError(
+                "This booking cannot be cancelled because at least one ticket has already been used.",
+                409
+            );
+        }
+
+        const cancelledTicket =
+            ticketsResult.rows.find(
+                (ticket) =>
+                    ticket.ticket_status ===
+                    "cancelled"
+            );
+
+        if (cancelledTicket) {
+            throw createBookingError(
+                "One or more tickets are already cancelled.",
+                409
+            );
+        }
+
+        const nonRefundableTicket =
+            ticketsResult.rows.find(
+                (ticket) =>
+                    !ticket.refund_eligible
+            );
+
+        if (nonRefundableTicket) {
+            throw createBookingError(
+                `${nonRefundableTicket.ticket_name} is not eligible for cancellation.`,
+                409
+            );
+        }
+
+        /*
+         * Read the exact purchased quantities.
+         * Prices or quantities are never accepted from
+         * the browser during cancellation.
+         */
+        const itemsResult = await client.query(
+            `
+                SELECT
+                    ticket_type_id,
+                    quantity
+
+                FROM booking_items
+
+                WHERE booking_id = $1
+
+                ORDER BY ticket_type_id
+            `,
+            [normalizedBookingId]
+        );
+
+        for (const item of itemsResult.rows) {
+            await client.query(
+                `
+                    UPDATE ticket_types
+                    SET quantity_remaining =
+                        quantity_remaining + $1
+                    WHERE ticket_type_id = $2
+                `,
+                [
+                    item.quantity,
+                    item.ticket_type_id
+                ]
+            );
+        }
+
+        await client.query(
+            `
+                UPDATE tickets
+                SET ticket_status = 'cancelled'
+                WHERE booking_item_id IN (
+                    SELECT booking_item_id
+                    FROM booking_items
+                    WHERE booking_id = $1
+                )
+            `,
+            [normalizedBookingId]
+        );
+
+        const cancelledBookingResult =
+            await client.query(
+                `
+                    UPDATE bookings
+                    SET
+                        status = 'cancelled',
+                        cancelled_at =
+                            CURRENT_TIMESTAMP
+                    WHERE booking_id = $1
+                    RETURNING
+                        booking_id,
+                        booking_reference,
+                        status,
+                        total_amount,
+                        cancelled_at
+                `,
+                [normalizedBookingId]
+            );
+
+        const isPaid =
+            Number(booking.total_amount) > 0;
+
+        const refundStatus = isPaid
+            ? "simulated"
+            : "not_required";
+
+        const cancellationResult =
+            await client.query(
+                `
+                    INSERT INTO cancellations (
+                        booking_id,
+                        reason,
+                        refund_status
+                    )
+                    VALUES ($1, $2, $3)
+                    RETURNING
+                        cancellation_id,
+                        booking_id,
+                        reason,
+                        refund_status,
+                        cancelled_at
+                `,
+                [
+                    normalizedBookingId,
+                    normalizedReason || null,
+                    refundStatus
+                ]
+            );
+
+        if (isPaid) {
+            await client.query(
+                `
+                    UPDATE payments
+                    SET payment_status =
+                        'simulated_refund'
+                    WHERE booking_id = $1
+                      AND payment_status =
+                          'successful'
+                `,
+                [normalizedBookingId]
+            );
+        }
+
+        /*
+         * If inventory returns to a sold-out event,
+         * make it publicly bookable again.
+         */
+        await client.query(
+            `
+                UPDATE events
+                SET
+                    status = 'published',
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE event_id = $1
+                  AND status = 'sold_out'
+                  AND event_date >= CURRENT_DATE
+                  AND EXISTS (
+                      SELECT 1
+                      FROM ticket_types
+                      WHERE event_id = $1
+                        AND quantity_remaining > 0
+                  )
+            `,
+            [booking.event_id]
+        );
+
+        await client.query("COMMIT");
+
+        return {
+            booking:
+                cancelledBookingResult.rows[0],
+
+            cancellation:
+                cancellationResult.rows[0],
+
+            tickets_cancelled:
+                ticketsResult.rowCount,
+
+            inventory_returned:
+                itemsResult.rows.reduce(
+                    (total, item) =>
+                        total
+                        + Number(item.quantity),
+                    0
+                )
+        };
+    } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+    } finally {
+        client.release();
+    }
+};
